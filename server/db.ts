@@ -1,7 +1,8 @@
-import { eq } from "drizzle-orm";
+import { eq, like, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import type { InsertClinic, InsertRating, InsertComment } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -89,4 +90,87 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Clinic queries
+export async function getAllClinics() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clinics);
+}
+
+export async function getClinicById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(clinics).where(eq(clinics.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getClinicsBySpecialty(specialtyId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(clinics)
+    .innerJoin(clinicSpecialties, eq(clinics.id, clinicSpecialties.clinicId))
+    .where(eq(clinicSpecialties.specialtyId, specialtyId));
+}
+
+export async function searchClinics(query: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(clinics)
+    .where(like(clinics.name, `%${query}%`));
+}
+
+// Specialty queries
+export async function getAllSpecialties() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(specialties);
+}
+
+export async function getSpecialtyById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(specialties).where(eq(specialties.id, id)).limit(1);
+  return result[0];
+}
+
+// Rating queries
+export async function getClinicRatings(clinicId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(ratings).where(eq(ratings.clinicId, clinicId));
+}
+
+export async function getUserRating(clinicId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(ratings)
+    .where(and(eq(ratings.clinicId, clinicId), eq(ratings.userId, userId)))
+    .limit(1);
+  return result[0];
+}
+
+// Comment queries
+export async function getClinicComments(clinicId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(comments).where(eq(comments.clinicId, clinicId));
+}
+
+// Clinic Specialties queries
+export async function getClinicSpecialties(clinicId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(specialties)
+    .innerJoin(clinicSpecialties, eq(specialties.id, clinicSpecialties.specialtyId))
+    .where(eq(clinicSpecialties.clinicId, clinicId));
+}
+
+// TODO: add more feature queries as needed
