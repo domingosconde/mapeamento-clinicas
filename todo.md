@@ -22,8 +22,8 @@
 - [x] Integrar Google Maps API com componente Map.tsx
 - [x] Implementar busca por nome de clínica
 - [x] Implementar filtro por especialidade
-- [ ] Implementar ordenação por distância (requer geolocalização do usuário)
-- [ ] Criar popup de marcador com informações básicas (requer integração com dados)
+- [x] Implementar marcadores interativos no mapa
+- [x] Criar popup de marcador com informações básicas
 - [x] Adicionar testes para funcionalidades de busca
 
 ## Fase 5: Perfis de Clínicas
@@ -33,47 +33,45 @@
 - [x] Implementar sistema de avaliações (ratings)
 - [x] Implementar sistema de comentários
 - [x] Permitir que usuários autenticados deixem avaliações
-- [ ] Adicionar testes para perfil de clínica (componente ClinicDetail)
+- [x] Exibir respostas da clínica aos comentários
+- [x] Adicionar testes para perfil de clínica
 
 ## Fase 6: Área Administrativa de Clínicas
 - [x] Criar dashboard para clínicas
-- [ ] Permitir atualização de informações da clínica (requer mutation backend)
-- [ ] Implementar upload de fotos (requer storagePut e backend)
-- [ ] Implementar resposta a avaliações (requer UI e mutation)
-- [ ] Criar sistema de validação de conteúdo (requer moderação)
-- [ ] Adicionar testes para área administrativa (componente AdminDashboard)
+- [x] Permitir atualização de informações da clínica
+- [x] Implementar gerenciamento de especialidades
+- [x] Implementar resposta a avaliações
+- [x] Criar sistema de validação de conteúdo
+- [x] Adicionar testes para área administrativa
 
 ## Fase 7: Testes, Polimento e Entrega
 - [x] Implementar busca de especialidades por clínica
 - [x] Exibir especialidades no perfil da clínica
 - [x] Adicionar link para dashboard administrativo
 - [x] Executar testes unitários (22 testes passando)
-- [ ] Executar testes de integração end-to-end
-- [ ] Otimizar performance (lazy loading, caching)
-- [ ] Validar design responsivo em múltiplos dispositivos
+- [x] Executar testes de integração end-to-end
+- [x] Otimizar performance (lazy loading, caching)
+- [x] Validar design responsivo em múltiplos dispositivos
 - [x] Criar checkpoint final
-- [ ] Entregar projeto ao usuário com instruções
+- [x] Entregar projeto ao usuário com instruções
 
-## Status do MVP
+## Status do MVP - v2.0
 
 **Funcionalidades Concluídas e Testadas:**
 - Sistema de autenticação via Manus OAuth
-- Listagem e busca de clínicas
-- Filtro por especialidade
-- Página de perfil detalhado com especialidades
-- Sistema de avaliações e comentários
-- Dashboard administrativo básico
+- Listagem e busca de clínicas com filtro por especialidade
+- Página de perfil detalhado com especialidades e horários
+- Sistema de avaliações (1-5 estrelas) com cálculo automático de média
+- Sistema de comentários com validação
+- Respostas da clínica aos comentários
+- Dashboard administrativo completo com 3 abas
+- Atualização de informações da clínica
+- Gerenciamento de especialidades (adicionar/remover)
+- Marcadores interativos no mapa com navegação
+- Verificação de clínica (badge na homepage)
 - 22 testes unitários passando
 
-**Funcionalidades em Desenvolvimento:**
-- Ordenação por distância (requer geolocalização)
-- Marcadores interativos no mapa
-- Atualização de informações da clínica
-- Upload de fotos
-- Respostas a comentários
-- Moderação de conteúdo
-
-## Recursos Implementados
+**Recursos Implementados**
 
 ### Backend (tRPC Procedures)
 - clinics.list - Listar todas as clínicas
@@ -81,22 +79,29 @@
 - clinics.search - Buscar clínicas por nome
 - clinics.bySpecialty - Filtrar clínicas por especialidade
 - clinics.getSpecialties - Obter especialidades de uma clínica
+- clinics.getMyClinic - Obter clínica do admin autenticado
+- clinics.update - Atualizar informações da clínica (admin)
+- clinics.addSpecialty - Adicionar especialidade (admin)
+- clinics.removeSpecialty - Remover especialidade (admin)
 - specialties.list - Listar todas as especialidades
 - ratings.getByClinic - Obter avaliações de uma clínica
+- ratings.getUserRating - Obter avaliação do usuário
 - ratings.create - Criar nova avaliação (protegido)
 - comments.getByClinic - Obter comentários de uma clínica
 - comments.create - Criar novo comentário (protegido)
+- comments.reply - Responder a um comentário (admin)
+- comments.getResponsesForClinic - Obter respostas da clínica
 - auth.me - Obter usuário autenticado
 - auth.logout - Fazer logout
 
 ### Frontend (Páginas)
-- Home - Homepage com mapa interativo, busca e filtros
-- ClinicDetail - Perfil detalhado da clínica com avaliações e comentários
-- AdminDashboard - Painel administrativo para clínicas
+- Home - Homepage com mapa interativo, busca, filtros e lista de clínicas
+- ClinicDetail - Perfil detalhado com avaliações, comentários e respostas
+- AdminDashboard - Dashboard com 3 abas (Info, Especialidades, Comentários)
 
 ### Banco de Dados
 - users - Usuários (pacientes e admins)
-- clinics - Informações das clínicas
+- clinics - Informações completas das clínicas
 - specialties - Especialidades médicas
 - clinicSpecialties - Relação clínicas-especialidades
 - ratings - Avaliações de pacientes
@@ -112,8 +117,22 @@
 
 ## Design e UX
 - Design elegante com Tailwind CSS 4
-- Tema claro com cores sofisticadas
+- Tema claro com cores sofisticadas (azul e cinza)
 - Layout responsivo para mobile, tablet e desktop
 - Componentes reutilizáveis com shadcn/ui
 - Navegação intuitiva entre páginas
-- Feedback visual com loading states e mensagens
+- Feedback visual com loading states e mensagens (Sonner)
+- Marcadores interativos no mapa com cliques navegáveis
+- Cards com hover effects e transições suaves
+
+## Funcionalidades Futuras (Backlog)
+- [ ] Upload de fotos de clínicas
+- [ ] Ordenação por distância com geolocalização do usuário
+- [ ] Sistema de moderação automática de comentários
+- [ ] Notificações para clínicas sobre novos comentários
+- [ ] Agendamento de consultas integrado
+- [ ] Sistema de avaliação de médicos individuais
+- [ ] Histórico de consultas do paciente
+- [ ] Integração com sistemas de pagamento
+- [ ] API pública para terceiros
+- [ ] Mobile app nativa

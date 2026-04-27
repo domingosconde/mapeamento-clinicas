@@ -1,8 +1,8 @@
-import { eq, like, and } from "drizzle-orm";
+import { eq, like, and, avg, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties } from "../drizzle/schema";
+import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties, clinicResponses } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import type { InsertClinic, InsertRating, InsertComment } from "../drizzle/schema";
+import type { InsertClinic, InsertRating, InsertComment, InsertClinicResponse } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -174,3 +174,101 @@ export async function getClinicSpecialties(clinicId: number) {
 }
 
 // TODO: add more feature queries as needed
+
+// Get clinic where adminUserId = userId
+export async function getClinicByAdminId(adminUserId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(clinics).where(eq(clinics.adminUserId, adminUserId)).limit(1);
+  return result[0];
+}
+
+// Update clinic fields (only updatable by its admin)
+export async function updateClinic(id: number, data: Partial<InsertClinic>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(clinics).set({ ...data, updatedAt: new Date() }).where(eq(clinics.id, id));
+  const result = await db.select().from(clinics).where(eq(clinics.id, id)).limit(1);
+  return result[0];
+}
+
+// Recalculate and persist averageRating and totalRatings on clinic
+export async function recalculateClinicRating(clinicId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const result = await db
+    .select({ avgScore: avg(ratings.score), total: count(ratings.id) })
+    .from(ratings)
+    .where(eq(ratings.clinicId, clinicId));
+  const { avgScore, total } = result[0];
+  await db
+    .update(clinics)
+    .set({ averageRating: avgScore ? parseFloat(String(avgScore)) : 0, totalRatings: total })
+    .where(eq(clinics.id, clinicId));
+}
+
+// Get comments with user name
+export async function getClinicCommentsWithUser(clinicId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: comments.id,
+      clinicId: comments.clinicId,
+      userId: comments.userId,
+      text: comments.text,
+      isApproved: comments.isApproved,
+      createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
+      userName: users.name,
+    })
+    .from(comments)
+    .leftJoin(users, eq(comments.userId, users.id))
+    .where(and(eq(comments.clinicId, clinicId), eq(comments.isApproved, true)));
+}
+
+// Get clinic responses for a comment
+export async function getClinicResponsesForComment(commentId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clinicResponses).where(eq(clinicResponses.commentId, commentId));
+}
+
+// Get all clinic responses for a clinic's comments
+export async function getClinicResponsesForClinic(clinicId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(clinicResponses).where(eq(clinicResponses.clinicId, clinicId));
+}
+
+// Create a clinic response to a comment
+export async function createClinicResponseRecord(data: InsertClinicResponse) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(clinicResponses).values(data);
+  return { id: (result as any).insertId, ...data };
+}
+
+// Add a specialty to a clinic
+export async function addClinicSpecialty(clinicId: number, specialtyId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db
+    .select()
+    .from(clinicSpecialties)
+    .where(and(eq(clinicSpecialties.clinicId, clinicId), eq(clinicSpecialties.specialtyId, specialtyId)))
+    .limit(1);
+  if (existing.length > 0) return existing[0];
+  const result = await db.insert(clinicSpecialties).values({ clinicId, specialtyId });
+  return { id: (result as any).insertId, clinicId, specialtyId };
+}
+
+// Remove a specialty from a clinic
+export async function removeClinicSpecialty(clinicId: number, specialtyId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .delete(clinicSpecialties)
+    .where(and(eq(clinicSpecialties.clinicId, clinicId), eq(clinicSpecialties.specialtyId, specialtyId)));
+  return { success: true };
+}

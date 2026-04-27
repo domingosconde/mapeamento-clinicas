@@ -2,10 +2,10 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { MapPin, Search, Star, Phone, Mail } from "lucide-react";
+import { MapPin, Search, Star, Phone, Mail, Filter } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { MapView } from "@/components/Map";
 
@@ -14,22 +14,80 @@ export default function Home() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState<number | null>(null);
-  
-  // Fetch clinics
-  const { data: clinics = [] } = trpc.clinics.list.useQuery();
-  const { data: specialties = [] } = trpc.specialties.list.useQuery();
-  
-  // Search or filter clinics
-  let filteredClinics = clinics;
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+
+  // Fetch all clinics and specialties
+  const { data: allClinics = [] } = trpc.clinics.list.useQuery();
+  const { data: allSpecialties = [] } = trpc.specialties.list.useQuery();
+
+  // Fetch clinics by specialty when one is selected
+  const { data: clinicsBySpecialty = [] } = trpc.clinics.bySpecialty.useQuery(
+    { specialtyId: selectedSpecialty! },
+    { enabled: selectedSpecialty !== null }
+  );
+
+  // Compute displayed clinics
+  let filteredClinics = selectedSpecialty !== null ? clinicsBySpecialty.map((r: any) => r.clinics ?? r) : allClinics;
   if (searchQuery) {
-    filteredClinics = filteredClinics.filter(c => 
+    filteredClinics = filteredClinics.filter((c: any) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }
-  if (selectedSpecialty) {
-    // This would need a more sophisticated filter based on clinic specialties
-    // For now, we'll show all clinics
+
+  // Place markers on the map whenever clinics or map changes
+  const handleMapReady = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+    placeMarkers(map, filteredClinics);
+  }, []); // eslint-disable-line
+
+  function placeMarkers(map: google.maps.Map, clinicList: any[]) {
+    // Clear old markers
+    markersRef.current.forEach(m => { m.map = null; });
+    markersRef.current = [];
+
+    clinicList.forEach((clinic: any) => {
+      if (!clinic.latitude || !clinic.longitude) return;
+      const lat = parseFloat(String(clinic.latitude));
+      const lng = parseFloat(String(clinic.longitude));
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      const pin = document.createElement("div");
+      pin.className = "bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg cursor-pointer whitespace-nowrap";
+      pin.textContent = clinic.name.length > 20 ? clinic.name.slice(0, 18) + "…" : clinic.name;
+
+      const marker = new window.google!.maps.marker.AdvancedMarkerElement({
+        map,
+        position: { lat, lng },
+        title: clinic.name,
+        content: pin,
+      });
+
+      marker.addListener("click", () => {
+        navigate(`/clinic/${clinic.id}`);
+      });
+
+      markersRef.current.push(marker);
+    });
   }
+
+  // Re-place markers when filter changes and map is ready
+  const handleFilterChange = (newClinics: any[]) => {
+    if (mapRef.current) placeMarkers(mapRef.current, newClinics);
+  };
+
+  const handleSearchChange = (v: string) => {
+    setSearchQuery(v);
+    const base = selectedSpecialty !== null ? clinicsBySpecialty.map((r: any) => r.clinics ?? r) : allClinics;
+    const next = base.filter((c: any) => c.name.toLowerCase().includes(v.toLowerCase()));
+    handleFilterChange(next);
+  };
+
+  const handleSpecialtyChange = (id: number | null) => {
+    setSelectedSpecialty(id);
+    const base = id !== null ? clinicsBySpecialty.map((r: any) => r.clinics ?? r) : allClinics;
+    handleFilterChange(base);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -49,7 +107,6 @@ export default function Home() {
                     Admin
                   </Button>
                 )}
-                <Button variant="outline" size="sm">Perfil</Button>
               </div>
             ) : (
               <Button asChild>
@@ -65,7 +122,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-4xl font-bold mb-2">Encontre as Melhores Clínicas</h2>
           <p className="text-blue-100 mb-8">Busque por especialidade ou localização</p>
-          
+
           <div className="flex gap-4 flex-col sm:flex-row">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
@@ -73,20 +130,23 @@ export default function Home() {
                 type="text"
                 placeholder="Buscar clínicas..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 bg-white text-slate-900 border-0"
               />
             </div>
-            <select
-              value={selectedSpecialty || ""}
-              onChange={(e) => setSelectedSpecialty(e.target.value ? parseInt(e.target.value) : null)}
-              className="px-4 py-2 bg-white text-slate-900 rounded-lg border-0 font-medium"
-            >
-              <option value="">Todas as especialidades</option>
-              {specialties.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <Filter className="absolute left-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
+              <select
+                value={selectedSpecialty ?? ""}
+                onChange={(e) => handleSpecialtyChange(e.target.value ? parseInt(e.target.value) : null)}
+                className="pl-9 pr-4 py-2 bg-white text-slate-900 rounded-lg border-0 font-medium h-10 appearance-none cursor-pointer"
+              >
+                <option value="">Todas as especialidades</option>
+                {allSpecialties.map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </section>
@@ -97,42 +157,53 @@ export default function Home() {
           {/* Map Section */}
           <div className="lg:col-span-2">
             <Card className="overflow-hidden shadow-lg h-96 lg:h-[600px]">
-              <MapView initialCenter={{ lat: -8.8383, lng: 13.2344 }} initialZoom={12} />
+              <MapView
+                initialCenter={{ lat: -8.8383, lng: 13.2344 }}
+                initialZoom={12}
+                onMapReady={handleMapReady}
+              />
             </Card>
           </div>
 
           {/* Clinics List */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-slate-900">
-              {filteredClinics.length} Clínica{filteredClinics.length !== 1 ? 's' : ''} Encontrada{filteredClinics.length !== 1 ? 's' : ''}
+              {filteredClinics.length} Clínica{filteredClinics.length !== 1 ? "s" : ""} Encontrada{filteredClinics.length !== 1 ? "s" : ""}
             </h3>
-            
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {filteredClinics.map(clinic => (
-                <Card key={clinic.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer">
+
+            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+              {filteredClinics.length === 0 && (
+                <p className="text-center text-slate-500 py-12">Nenhuma clínica encontrada.</p>
+              )}
+              {filteredClinics.map((clinic: any) => (
+                <Card
+                  key={clinic.id}
+                  className="p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/clinic/${clinic.id}`)}
+                >
                   <div className="space-y-2">
                     <h4 className="font-semibold text-slate-900">{clinic.name}</h4>
-                    
+
                     <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <MapPin className="w-4 h-4" />
+                      <MapPin className="w-4 h-4 flex-shrink-0" />
                       <span>{clinic.city}</span>
                     </div>
-                    
+
                     {clinic.phone && (
                       <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Phone className="w-4 h-4" />
+                        <Phone className="w-4 h-4 flex-shrink-0" />
                         <span>{clinic.phone}</span>
                       </div>
                     )}
-                    
+
                     {clinic.email && (
                       <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <Mail className="w-4 h-4" />
-                        <span>{clinic.email}</span>
+                        <Mail className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{clinic.email}</span>
                       </div>
                     )}
-                    
-                    {clinic.averageRating && clinic.averageRating > 0 && (
+
+                    {clinic.averageRating && clinic.averageRating > 0 ? (
                       <div className="flex items-center gap-1 text-sm">
                         <div className="flex">
                           {[...Array(5)].map((_, i: number) => (
@@ -140,24 +211,23 @@ export default function Home() {
                               key={i}
                               className={`w-4 h-4 ${
                                 i < Math.round(clinic.averageRating || 0)
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-slate-300'
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-slate-300"
                               }`}
                             />
                           ))}
                         </div>
-                        <span className="text-slate-600">({clinic.totalRatings})</span>
+                        <span className="text-slate-600">
+                          {Number(clinic.averageRating).toFixed(1)} ({clinic.totalRatings})
+                        </span>
                       </div>
+                    ) : null}
+
+                    {clinic.isVerified && (
+                      <span className="inline-block text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
+                        ✓ Verificada
+                      </span>
                     )}
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-2"
-                      onClick={() => navigate(`/clinic/${clinic.id}`)}
-                    >
-                      Ver Detalhes
-                    </Button>
                   </div>
                 </Card>
               ))}
