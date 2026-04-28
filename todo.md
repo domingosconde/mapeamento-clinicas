@@ -143,7 +143,7 @@
 - [x] Adicionar documentação README.md completa
 - [ ] Implementar InfoWindow/popup real nos marcadores do mapa
 - [ ] Adicionar testes do componente ClinicDetail
-- [ ] Adicionar testes do fluxo administrativo completo
+- [x] Adicionar testes do fluxo administrativo completo (clinics.update, add/remove specialty, comments.reply)
 - [ ] Implementar moderação/validação de conteúdo com isApproved
 - [ ] Adicionar testes E2E/integration para fluxos completos
 - [ ] Implementar otimizações de performance (lazy loading, caching)
