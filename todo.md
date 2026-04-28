@@ -136,3 +136,14 @@
 - [ ] Integração com sistemas de pagamento
 - [ ] API pública para terceiros
 - [ ] Mobile app nativa
+
+## Melhorias de Qualidade (v2.1)
+- [x] Corrigir erro TypeScript em server/_core/storageProxy.ts
+- [x] Criar script de seed com dados de demonstração (3 clínicas, 8 especialidades)
+- [x] Adicionar documentação README.md completa
+- [ ] Implementar InfoWindow/popup real nos marcadores do mapa
+- [ ] Adicionar testes do componente ClinicDetail
+- [ ] Adicionar testes do fluxo administrativo completo
+- [ ] Implementar moderação/validação de conteúdo com isApproved
+- [ ] Adicionar testes E2E/integration para fluxos completos
+- [ ] Implementar otimizações de performance (lazy loading, caching)
