@@ -1,8 +1,8 @@
 import { eq, like, and, avg, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties, clinicResponses } from "../drizzle/schema";
+import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties, clinicResponses, appointments, appointmentSlots } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import type { InsertClinic, InsertRating, InsertComment, InsertClinicResponse } from "../drizzle/schema";
+import type { InsertClinic, InsertRating, InsertComment, InsertClinicResponse, InsertAppointment, InsertAppointmentSlot } from "../drizzle/schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -271,4 +271,79 @@ export async function removeClinicSpecialty(clinicId: number, specialtyId: numbe
     .delete(clinicSpecialties)
     .where(and(eq(clinicSpecialties.clinicId, clinicId), eq(clinicSpecialties.specialtyId, specialtyId)));
   return { success: true };
+}
+
+
+// Appointment functions
+export async function createAppointment(data: InsertAppointment) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(appointments).values(data);
+  return { id: (result as any).insertId, ...data };
+}
+
+export async function getClinicAppointments(clinicId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(appointments)
+    .where(eq(appointments.clinicId, clinicId))
+    .orderBy(appointments.appointmentDate);
+}
+
+export async function getUserAppointments(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(appointments)
+    .where(eq(appointments.userId, userId))
+    .orderBy(appointments.appointmentDate);
+}
+
+export async function getAppointmentById(appointmentId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(appointments)
+    .where(eq(appointments.id, appointmentId))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateAppointmentStatus(appointmentId: number, status: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(appointments)
+    .set({ status: status as any, updatedAt: new Date() })
+    .where(eq(appointments.id, appointmentId));
+}
+
+export async function getAvailableSlots(clinicId: number, dayOfWeek: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(appointmentSlots)
+    .where(and(eq(appointmentSlots.clinicId, clinicId), eq(appointmentSlots.dayOfWeek, dayOfWeek), eq(appointmentSlots.isActive, true)));
+}
+
+export async function createAppointmentSlot(data: InsertAppointmentSlot) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(appointmentSlots).values(data);
+  return { id: (result as any).insertId, ...data };
+}
+
+export async function getClinicAppointmentSlots(clinicId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(appointmentSlots)
+    .where(eq(appointmentSlots.clinicId, clinicId))
+    .orderBy(appointmentSlots.dayOfWeek);
 }

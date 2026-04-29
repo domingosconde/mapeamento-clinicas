@@ -230,6 +230,12 @@ export default function ClinicDetail() {
                   </div>
                 )}
               </div>
+              <Button
+                onClick={() => navigate(`/clinic/${clinicId}/book`)}
+                className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg"
+              >
+                Agendar Consulta
+              </Button>
             </Card>
 
             {/* Comments Section */}

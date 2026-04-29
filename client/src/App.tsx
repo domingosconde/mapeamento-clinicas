@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import ClinicDetail from "./pages/ClinicDetail";
 import AdminDashboard from "./pages/AdminDashboard";
+import BookAppointment from "./pages/BookAppointment";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -14,6 +15,7 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path={"/clinic/:id"} component={ClinicDetail} />
+      <Route path={"/clinic/:id/book"} component={BookAppointment} />
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

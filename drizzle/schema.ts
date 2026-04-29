@@ -1,4 +1,4 @@
-import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar, boolean, float } from "drizzle-orm/mysql-core";
+import { boolean, date, decimal, float, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 import { relations } from "drizzle-orm";
 
 /**
@@ -127,12 +127,56 @@ export const clinicResponses = mysqlTable("clinicResponses", {
 export type ClinicResponse = typeof clinicResponses.$inferSelect;
 export type InsertClinicResponse = typeof clinicResponses.$inferInsert;
 
+/**
+ * Appointment Slots table - stores available time slots for clinics
+ */
+export const appointmentSlots = mysqlTable("appointmentSlots", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicId: int("clinicId").notNull(),
+  dayOfWeek: int("dayOfWeek").notNull(), // 0-6 (Sunday-Saturday)
+  startTime: varchar("startTime", { length: 5 }).notNull(), // HH:MM format
+  endTime: varchar("endTime", { length: 5 }).notNull(), // HH:MM format
+  slotDurationMinutes: int("slotDurationMinutes").default(30),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AppointmentSlot = typeof appointmentSlots.$inferSelect;
+export type InsertAppointmentSlot = typeof appointmentSlots.$inferInsert;
+
+/**
+ * Appointments table - stores user appointments with clinics
+ */
+export const appointments = mysqlTable("appointments", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicId: int("clinicId").notNull(),
+  userId: int("userId").notNull(),
+  appointmentDate: date("appointmentDate").notNull(),
+  startTime: varchar("startTime", { length: 5 }).notNull(),
+  endTime: varchar("endTime", { length: 5 }).notNull(),
+  specialtyId: int("specialtyId"),
+  patientName: varchar("patientName", { length: 255 }).notNull(),
+  patientEmail: varchar("patientEmail", { length: 320 }).notNull(),
+  patientPhone: varchar("patientPhone", { length: 20 }),
+  notes: text("notes"),
+  status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled", "no-show"]).default("pending"),
+  reminderSent: boolean("reminderSent").default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Appointment = typeof appointments.$inferSelect;
+export type InsertAppointment = typeof appointments.$inferInsert;
+
 // Relations
 export const clinicsRelations = relations(clinics, ({ many, one }) => (
   {
     specialties: many(clinicSpecialties),
     ratings: many(ratings),
     comments: many(comments),
+    appointments: many(appointments),
+    appointmentSlots: many(appointmentSlots),
     admin: one(users, {
       fields: [clinics.adminUserId],
       references: [users.id],
@@ -203,5 +247,32 @@ export const usersRelations = relations(users, ({ many }) => (
   {
     ratings: many(ratings),
     comments: many(comments),
+    appointments: many(appointments),
+  }
+));
+
+export const appointmentSlotsRelations = relations(appointmentSlots, ({ one }) => (
+  {
+    clinic: one(clinics, {
+      fields: [appointmentSlots.clinicId],
+      references: [clinics.id],
+    }),
+  }
+));
+
+export const appointmentsRelations = relations(appointments, ({ one }) => (
+  {
+    clinic: one(clinics, {
+      fields: [appointments.clinicId],
+      references: [clinics.id],
+    }),
+    user: one(users, {
+      fields: [appointments.userId],
+      references: [users.id],
+    }),
+    specialty: one(specialties, {
+      fields: [appointments.specialtyId],
+      references: [specialties.id],
+    }),
   }
 ));

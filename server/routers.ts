@@ -21,6 +21,14 @@ import {
   getClinicResponsesForClinic,
   addClinicSpecialty,
   removeClinicSpecialty,
+  createAppointment,
+  getClinicAppointments,
+  getUserAppointments,
+  getAppointmentById,
+  updateAppointmentStatus,
+  getAvailableSlots,
+  createAppointmentSlot,
+  getClinicAppointmentSlots,
 } from "./db";
 import { ratings, comments, type InsertRating, type InsertComment } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
@@ -202,6 +210,109 @@ export const appRouter = router({
     getResponsesForClinic: publicProcedure
       .input(z.object({ clinicId: z.number() }))
       .query(async ({ input }) => getClinicResponsesForClinic(input.clinicId)),
+  }),
+
+  appointments: router({
+    // Create a new appointment
+    create: protectedProcedure
+      .input(z.object({
+        clinicId: z.number(),
+        appointmentDate: z.string(),
+        startTime: z.string(),
+        endTime: z.string(),
+        specialtyId: z.number().optional(),
+        patientName: z.string().min(1),
+        patientEmail: z.string().email(),
+        patientPhone: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        return createAppointment({
+          clinicId: input.clinicId,
+          userId: ctx.user.id,
+          appointmentDate: new Date(input.appointmentDate),
+          startTime: input.startTime,
+          endTime: input.endTime,
+          specialtyId: input.specialtyId,
+          patientName: input.patientName,
+          patientEmail: input.patientEmail,
+          patientPhone: input.patientPhone,
+          notes: input.notes,
+          status: "pending",
+        });
+      }),
+
+    // Get clinic appointments
+    getClinicAppointments: publicProcedure
+      .input(z.object({ clinicId: z.number() }))
+      .query(async ({ input }) => getClinicAppointments(input.clinicId)),
+
+    // Get user appointments
+    getUserAppointments: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        return getUserAppointments(ctx.user.id);
+      }),
+
+    // Get appointment by ID
+    getById: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => getAppointmentById(input.id)),
+
+    // Update appointment status
+    updateStatus: protectedProcedure
+      .input(z.object({
+        appointmentId: z.number(),
+        status: z.enum(["pending", "confirmed", "completed", "cancelled", "no-show"]),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const appointment = await getAppointmentById(input.appointmentId);
+        if (!appointment) throw new TRPCError({ code: "NOT_FOUND" });
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic || clinic.id !== appointment.clinicId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        await updateAppointmentStatus(input.appointmentId, input.status);
+        return { success: true };
+      }),
+
+    // Get available slots for a clinic on a specific day
+    getAvailableSlots: publicProcedure
+      .input(z.object({ clinicId: z.number(), dayOfWeek: z.number() }))
+      .query(async ({ input }) => getAvailableSlots(input.clinicId, input.dayOfWeek)),
+
+    // Create appointment slot (admin only)
+    createSlot: protectedProcedure
+      .input(z.object({
+        dayOfWeek: z.number().min(0).max(6),
+        startTime: z.string(),
+        endTime: z.string(),
+        slotDurationMinutes: z.number().default(30),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic) throw new TRPCError({ code: "FORBIDDEN" });
+        return createAppointmentSlot({
+          clinicId: clinic.id,
+          dayOfWeek: input.dayOfWeek,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          slotDurationMinutes: input.slotDurationMinutes,
+          isActive: true,
+        });
+      }),
+
+    // Get clinic appointment slots (admin)
+    getClinicSlots: protectedProcedure
+      .query(async ({ ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic) throw new TRPCError({ code: "FORBIDDEN" });
+        return getClinicAppointmentSlots(clinic.id);
+      }),
   }),
 });
 

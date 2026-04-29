@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 
-type Tab = "info" | "specialties" | "comments";
+type Tab = "info" | "specialties" | "comments" | "appointments";
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -157,6 +157,7 @@ export default function AdminDashboard() {
     { id: "info" as Tab, label: "Informações", icon: Settings },
     { id: "specialties" as Tab, label: "Especialidades", icon: Tag },
     { id: "comments" as Tab, label: `Comentários (${clinicComments.length})`, icon: MessageSquare },
+    { id: "appointments" as Tab, label: "Agendamentos", icon: MessageSquare },
   ];
 
   return (

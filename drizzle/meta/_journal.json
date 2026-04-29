@@ -15,6 +15,13 @@
       "when": 1777204643750,
       "tag": "0001_tearful_spacker_dave",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1777357137289,
+      "tag": "0002_exotic_robbie_robertson",
+      "breakpoints": true
     }
   ]
 }

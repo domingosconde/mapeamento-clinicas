@@ -147,3 +147,15 @@
 - [ ] Implementar moderação/validação de conteúdo com isApproved
 - [ ] Adicionar testes E2E/integration para fluxos completos
 - [ ] Implementar otimizações de performance (lazy loading, caching)
+
+
+## Fase 7: Sistema de Agendamento de Consultas (NOVO)
+- [x] Criar tabelas: appointments, appointment_slots
+- [x] Implementar procedures tRPC para agendamento (8 procedures)
+- [x] Criar página de agendamento integrada ao perfil da clínica
+- [x] Adicionar gerenciamento de agendamentos no dashboard admin
+- [x] Adicionar testes para sistema de agendamento (12 testes)
+- [ ] Implementar validação de conflitos de agendamento
+- [ ] Implementar notificações de confirmação por email
+- [ ] Criar relatório de agendamentos para clínicas
+- [ ] Adicionar calendário visual para seleção de datas
