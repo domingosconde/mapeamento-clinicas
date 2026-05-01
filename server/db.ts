@@ -1,4 +1,4 @@
-import { eq, like, and, avg, count } from "drizzle-orm";
+import { eq, like, and, avg, count, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties, clinicResponses, appointments, appointmentSlots } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -346,4 +346,80 @@ export async function getClinicAppointmentSlots(clinicId: number) {
     .from(appointmentSlots)
     .where(eq(appointmentSlots.clinicId, clinicId))
     .orderBy(appointmentSlots.dayOfWeek);
+}
+
+
+// Appointment conflict validation
+export async function checkAppointmentConflict(
+  clinicId: number,
+  appointmentDate: string,
+  startTime: string,
+  endTime: string,
+  excludeAppointmentId?: number
+) {
+  const db = await getDb();
+  if (!db) return false;
+
+  let whereCondition = and(
+    eq(appointments.clinicId, clinicId),
+    eq(appointments.appointmentDate, appointmentDate as any),
+    eq(appointments.status, "confirmed" as any)
+  );
+
+  if (excludeAppointmentId) {
+    whereCondition = and(whereCondition, ne(appointments.id, excludeAppointmentId));
+  }
+
+  const conflicts = await db
+    .select()
+    .from(appointments)
+    .where(whereCondition);
+
+  // Check for time overlap in application layer
+  return conflicts.some((existing: any) => {
+    const existingStart = existing.startTime;
+    const existingEnd = existing.endTime;
+    return startTime < existingEnd && endTime > existingStart;
+  });
+}
+
+// Get appointment statistics for clinic
+export async function getClinicAppointmentStats(clinicId: number) {
+  const db = await getDb();
+  if (!db) return { total: 0, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
+
+  const allAppointments = await db
+    .select()
+    .from(appointments)
+    .where(eq(appointments.clinicId, clinicId));
+
+  return {
+    total: allAppointments.length,
+    pending: allAppointments.filter((a: any) => a.status === "pending").length,
+    confirmed: allAppointments.filter((a: any) => a.status === "confirmed").length,
+    completed: allAppointments.filter((a: any) => a.status === "completed").length,
+    cancelled: allAppointments.filter((a: any) => a.status === "cancelled").length,
+  };
+}
+
+// Get upcoming appointments for clinic
+export async function getUpcomingAppointments(clinicId: number, days: number = 7) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + days);
+
+  return db
+    .select()
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.clinicId, clinicId),
+        sql`${appointments.appointmentDate} >= CURDATE()`,
+        sql`${appointments.appointmentDate} <= ${futureDate.toISOString().split("T")[0]}`,
+        ne(appointments.status, "cancelled")
+      )
+    )
+    .orderBy(appointments.appointmentDate, appointments.startTime);
 }

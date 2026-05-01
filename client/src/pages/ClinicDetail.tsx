@@ -26,11 +26,7 @@ export default function ClinicDetail() {
     { enabled: clinicId > 0 }
   );
 
-  // Fetch specialties, ratings, comments, responses
-  const { data: specialties = [] } = trpc.clinics.getSpecialties.useQuery(
-    { clinicId },
-    { enabled: clinicId > 0 }
-  );
+  // Fetch ratings and comments
   const { data: clinicRatings = [], refetch: refetchRatings } = trpc.ratings.getByClinic.useQuery(
     { clinicId },
     { enabled: clinicId > 0 }
@@ -39,13 +35,9 @@ export default function ClinicDetail() {
     { clinicId },
     { enabled: clinicId > 0 }
   );
-  const { data: clinicResponses = [] } = trpc.comments.getResponsesForClinic.useQuery(
-    { clinicId },
-    { enabled: clinicId > 0 }
-  );
   const { data: userExistingRating } = trpc.ratings.getUserRating.useQuery(
-    { clinicId },
-    { enabled: clinicId > 0 && isAuthenticated }
+    { clinicId, userId: user?.id || 0 },
+    { enabled: clinicId > 0 && isAuthenticated && !!user?.id }
   );
 
   // Mutations
@@ -81,11 +73,6 @@ export default function ClinicDetail() {
   };
 
   // Map responses by commentId for quick lookup
-  const responsesByCommentId = clinicResponses.reduce((acc: Record<number, any[]>, r: any) => {
-    if (!acc[r.commentId]) acc[r.commentId] = [];
-    acc[r.commentId].push(r);
-    return acc;
-  }, {});
 
   if (clinicLoading) {
     return (
@@ -161,22 +148,6 @@ export default function ClinicDetail() {
               </Card>
             )}
 
-            {/* Specialties */}
-            {specialties.length > 0 && (
-              <Card className="p-6">
-                <h2 className="text-xl font-semibold text-slate-900 mb-4">Especialidades</h2>
-                <div className="flex flex-wrap gap-2">
-                  {specialties.map((spec: any) => (
-                    <span
-                      key={spec.specialties.id}
-                      className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm font-medium"
-                    >
-                      {spec.specialties.name}
-                    </span>
-                  ))}
-                </div>
-              </Card>
-            )}
 
             {/* Contact & Hours */}
             <Card className="p-6 space-y-4">
@@ -293,16 +264,7 @@ export default function ClinicDetail() {
                       </div>
                       <p className="text-slate-700">{c.text}</p>
 
-                      {/* Clinic replies */}
-                      {(responsesByCommentId[c.id] || []).map((reply: any) => (
-                        <div key={reply.id} className="ml-4 p-3 bg-blue-50 border-l-2 border-blue-400 rounded-r-lg">
-                          <p className="text-xs font-semibold text-blue-700 mb-1">Resposta da Clínica</p>
-                          <p className="text-sm text-slate-700">{reply.text}</p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            {new Date(reply.createdAt).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                      ))}
+
                     </div>
                   ))
                 )}

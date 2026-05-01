@@ -22,7 +22,7 @@ export default function Home() {
   const { data: allSpecialties = [] } = trpc.specialties.list.useQuery();
 
   // Fetch clinics by specialty when one is selected
-  const { data: clinicsBySpecialty = [] } = trpc.clinics.bySpecialty.useQuery(
+  const { data: clinicsBySpecialty = [] } = trpc.clinics.getBySpecialty.useQuery(
     { specialtyId: selectedSpecialty! },
     { enabled: selectedSpecialty !== null }
   );

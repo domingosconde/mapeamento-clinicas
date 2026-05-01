@@ -29,6 +29,7 @@ import {
   getAvailableSlots,
   createAppointmentSlot,
   getClinicAppointmentSlots,
+  checkAppointmentConflict,
 } from "./db";
 import { ratings, comments, type InsertRating, type InsertComment } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
@@ -49,71 +50,62 @@ export const appRouter = router({
   clinics: router({
     list: publicProcedure.query(async () => getAllClinics()),
 
-    getById: publicProcedure
-      .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => getClinicById(input.id)),
-
     search: publicProcedure
       .input(z.object({ query: z.string() }))
       .query(async ({ input }) => searchClinics(input.query)),
 
-    bySpecialty: publicProcedure
+    getById: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => getClinicById(input.id)),
+
+    getBySpecialty: publicProcedure
       .input(z.object({ specialtyId: z.number() }))
       .query(async ({ input }) => getClinicsBySpecialty(input.specialtyId)),
 
-    getSpecialties: publicProcedure
-      .input(z.object({ clinicId: z.number() }))
-      .query(async ({ input }) => getClinicSpecialties(input.clinicId)),
-
-    // Admin: get the clinic managed by the current user
-    getMyClinic: protectedProcedure.query(async ({ ctx }) =>
-      getClinicByAdminId(ctx.user.id)
-    ),
-
-    // Admin: update clinic info
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
-        name: z.string().min(1).max(255).optional(),
-        description: z.string().max(5000).optional(),
-        phone: z.string().max(20).optional().nullable(),
-        email: z.string().max(320).optional().nullable(),
-        website: z.string().max(500).optional().nullable(),
-        address: z.string().max(500).optional(),
-        city: z.string().max(100).optional(),
-        state: z.string().max(50).optional(),
-        zipCode: z.string().max(20).optional().nullable(),
-        openingHours: z.string().max(2000).optional().nullable(),
+        name: z.string().optional(),
+        address: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().optional(),
+        website: z.string().optional(),
+        openingHours: z.string().optional(),
+        latitude: z.string().optional(),
+        longitude: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
         const clinic = await getClinicByAdminId(ctx.user.id);
         if (!clinic || clinic.id !== input.id) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Não é o admin desta clínica" });
+          throw new TRPCError({ code: "FORBIDDEN" });
         }
-        const { id, ...data } = input;
-        return updateClinic(id, data);
+        await updateClinic(input.id, input);
+        return { success: true };
       }),
 
-    // Admin: add specialty to own clinic
     addSpecialty: protectedProcedure
       .input(z.object({ clinicId: z.number(), specialtyId: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
         const clinic = await getClinicByAdminId(ctx.user.id);
         if (!clinic || clinic.id !== input.clinicId) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Não é o admin desta clínica" });
+          throw new TRPCError({ code: "FORBIDDEN" });
         }
-        return addClinicSpecialty(input.clinicId, input.specialtyId);
+        await addClinicSpecialty(input.clinicId, input.specialtyId);
+        return { success: true };
       }),
 
-    // Admin: remove specialty from own clinic
     removeSpecialty: protectedProcedure
       .input(z.object({ clinicId: z.number(), specialtyId: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
         const clinic = await getClinicByAdminId(ctx.user.id);
         if (!clinic || clinic.id !== input.clinicId) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Não é o admin desta clínica" });
+          throw new TRPCError({ code: "FORBIDDEN" });
         }
-        return removeClinicSpecialty(input.clinicId, input.specialtyId);
+        await removeClinicSpecialty(input.clinicId, input.specialtyId);
+        return { success: true };
       }),
   }),
 
@@ -126,39 +118,31 @@ export const appRouter = router({
       .input(z.object({ clinicId: z.number() }))
       .query(async ({ input }) => getClinicRatings(input.clinicId)),
 
-    getUserRating: protectedProcedure
-      .input(z.object({ clinicId: z.number() }))
-      .query(async ({ input, ctx }) => getUserRating(input.clinicId, ctx.user.id)),
+    getUserRating: publicProcedure
+      .input(z.object({ clinicId: z.number(), userId: z.number() }))
+      .query(async ({ input }) => getUserRating(input.clinicId, input.userId)),
 
     create: protectedProcedure
       .input(z.object({
         clinicId: z.number(),
-        score: z.number().int().min(1).max(5),
+        score: z.number().min(1).max(5),
       }))
       .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
         const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-        // Upsert: one rating per user per clinic
-        const existing = await getUserRating(input.clinicId, ctx.user.id);
-        if (existing) {
-          await db
-            .update(ratings)
-            .set({ score: input.score, updatedAt: new Date() })
-            .where(and(eq(ratings.clinicId, input.clinicId), eq(ratings.userId, ctx.user.id)));
-        } else {
-          const newRating: InsertRating = {
-            clinicId: input.clinicId,
-            userId: ctx.user.id,
-            score: input.score,
-          };
-          await db.insert(ratings).values(newRating);
-        }
+        const newRating: InsertRating = {
+          clinicId: input.clinicId,
+          userId: ctx.user.id,
+          score: input.score,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-        // Recalculate aggregate on clinic row
+        await db.insert(ratings).values(newRating);
         await recalculateClinicRating(input.clinicId);
-
-        return { success: true, clinicId: input.clinicId, score: input.score };
+        return { success: true };
       }),
   }),
 
@@ -173,43 +157,51 @@ export const appRouter = router({
         text: z.string().min(1).max(1000),
       }))
       .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
         const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database not available" });
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
         const newComment: InsertComment = {
           clinicId: input.clinicId,
           userId: ctx.user.id,
           text: input.text,
           isApproved: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         };
 
-        const result = await db.insert(comments).values(newComment);
-        return { id: (result as any).insertId, ...newComment };
+        await db.insert(comments).values(newComment);
+        return { success: true };
       }),
 
-    // Admin: reply to a comment on their own clinic
     reply: protectedProcedure
       .input(z.object({
         commentId: z.number(),
-        clinicId: z.number(),
-        text: z.string().min(1).max(2000),
+        text: z.string().min(1).max(1000),
       }))
       .mutation(async ({ input, ctx }) => {
-        const clinic = await getClinicByAdminId(ctx.user.id);
-        if (!clinic || clinic.id !== input.clinicId) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Não é o admin desta clínica" });
-        }
-        return createClinicResponseRecord({
-          commentId: input.commentId,
-          clinicId: input.clinicId,
-          text: input.text,
-        });
-      }),
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-    // Get all responses for a clinic
-    getResponsesForClinic: publicProcedure
-      .input(z.object({ clinicId: z.number() }))
-      .query(async ({ input }) => getClinicResponsesForClinic(input.clinicId)),
+        const comment = await db.select().from(comments).where(eq(comments.id, input.commentId)).limit(1);
+        if (comment.length === 0) throw new TRPCError({ code: "NOT_FOUND" });
+
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic || clinic.id !== comment[0].clinicId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+
+        await createClinicResponseRecord({
+          commentId: input.commentId,
+          clinicId: clinic.id,
+          text: input.text,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        return { success: true };
+      }),
   }),
 
   appointments: router({
@@ -228,6 +220,22 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        
+        // Check for conflicts with confirmed appointments
+        const hasConflict = await checkAppointmentConflict(
+          input.clinicId,
+          input.appointmentDate,
+          input.startTime,
+          input.endTime
+        );
+        
+        if (hasConflict) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Este horario ja esta ocupado. Por favor, escolha outro horario.",
+          });
+        }
+        
         return createAppointment({
           clinicId: input.clinicId,
           userId: ctx.user.id,
@@ -274,45 +282,64 @@ export const appRouter = router({
         if (!clinic || clinic.id !== appointment.clinicId) {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
+        
+        // If confirming, check for conflicts
+        if (input.status === "confirmed") {
+          const hasConflict = await checkAppointmentConflict(
+            appointment.clinicId,
+            appointment.appointmentDate.toISOString().split("T")[0],
+            appointment.startTime,
+            appointment.endTime,
+            input.appointmentId
+          );
+          
+          if (hasConflict) {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "Este horario ja foi ocupado por outro agendamento.",
+            });
+          }
+        }
+        
         await updateAppointmentStatus(input.appointmentId, input.status);
         return { success: true };
       }),
 
-    // Get available slots for a clinic on a specific day
+    // Get available slots
     getAvailableSlots: publicProcedure
       .input(z.object({ clinicId: z.number(), dayOfWeek: z.number() }))
       .query(async ({ input }) => getAvailableSlots(input.clinicId, input.dayOfWeek)),
 
-    // Create appointment slot (admin only)
+    // Create appointment slot
     createSlot: protectedProcedure
       .input(z.object({
+        clinicId: z.number(),
         dayOfWeek: z.number().min(0).max(6),
         startTime: z.string(),
         endTime: z.string(),
-        slotDurationMinutes: z.number().default(30),
+        isActive: z.boolean().default(true),
       }))
       .mutation(async ({ input, ctx }) => {
         if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
         const clinic = await getClinicByAdminId(ctx.user.id);
-        if (!clinic) throw new TRPCError({ code: "FORBIDDEN" });
+        if (!clinic || clinic.id !== input.clinicId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
         return createAppointmentSlot({
-          clinicId: clinic.id,
+          clinicId: input.clinicId,
           dayOfWeek: input.dayOfWeek,
           startTime: input.startTime,
           endTime: input.endTime,
-          slotDurationMinutes: input.slotDurationMinutes,
-          isActive: true,
+          isActive: input.isActive,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
       }),
 
-    // Get clinic appointment slots (admin)
-    getClinicSlots: protectedProcedure
-      .query(async ({ ctx }) => {
-        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
-        const clinic = await getClinicByAdminId(ctx.user.id);
-        if (!clinic) throw new TRPCError({ code: "FORBIDDEN" });
-        return getClinicAppointmentSlots(clinic.id);
-      }),
+    // Get clinic appointment slots
+    getClinicSlots: publicProcedure
+      .input(z.object({ clinicId: z.number() }))
+      .query(async ({ input }) => getClinicAppointmentSlots(input.clinicId)),
   }),
 });
 
