@@ -9,11 +9,13 @@ import ClinicDetail from "./pages/ClinicDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import BookAppointment from "./pages/BookAppointment";
 import Setup from "./pages/Setup";
+import Welcome from "./pages/Welcome";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      <Route path={"/welcome"} component={Welcome} />
       <Route path={"/"} component={Home} />
       <Route path={"/clinic/:id"} component={ClinicDetail} />
       <Route path={"/clinic/:id/book"} component={BookAppointment} />

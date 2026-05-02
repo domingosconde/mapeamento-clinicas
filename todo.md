@@ -227,6 +227,32 @@
 4. Em Setup: pode criar clínicas e promover admins
 5. Em Admin: gerencia sua clínica
 
+## Melhorias Implementadas (v3.2)
+
+### Página de Boas-vindas
+- [x] Criar página /welcome com 3 opções de acesso
+- [x] Opção "Visitante" - navegar sem login
+- [x] Opção "Paciente" - login para avaliar/agendar
+- [x] Opção "Admin" - login para gerenciar
+- [x] Descrição clara de permissões para cada tipo
+
+### Sistema de Verificação de Clínicas
+- [x] Campo isVerified no banco de dados (já existia)
+- [x] Procedure tRPC system.verifyClinic
+- [x] Procedure tRPC system.unverifyClinic
+- [x] Procedure tRPC system.getUnverifiedClinics
+- [x] Aba "Verificar Clínicas" no Setup
+- [x] Badge visual "✓ Verificada" no perfil
+- [x] Badge visual "✓ Verificada" na listagem
+- [x] Filtro de clínicas não verificadas
+
+### Qualidade Final
+- [x] 22 testes unitários passando
+- [x] TypeScript sem erros
+- [x] Build sem warnings
+- [x] Servidor rodando normalmente
+- [x] Todas as rotas funcionando
+
 ## Como Usar
 
 ### Criar Primeira Clínica

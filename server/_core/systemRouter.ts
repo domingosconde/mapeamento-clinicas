@@ -119,4 +119,88 @@ export const systemRouter = router({
 
       return { success: true };
     }),
+
+  verifyClinic: adminProcedure
+    .input(
+      z.object({
+        clinicId: z.number().min(1, "clinicId is required"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // Check if clinic exists
+      const clinicResult = await db
+        .select()
+        .from(clinics)
+        .where(eq(clinics.id, input.clinicId))
+        .limit(1);
+
+      if (clinicResult.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Clinic not found",
+        });
+      }
+
+      const clinic = clinicResult[0];
+
+      // Update clinic to verified
+      await db
+        .update(clinics)
+        .set({ isVerified: true, updatedAt: new Date() })
+        .where(eq(clinics.id, input.clinicId));
+
+      return { success: true };
+    }),
+
+  unverifyClinic: adminProcedure
+    .input(
+      z.object({
+        clinicId: z.number().min(1, "clinicId is required"),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // Check if clinic exists
+      const clinicResult = await db
+        .select()
+        .from(clinics)
+        .where(eq(clinics.id, input.clinicId))
+        .limit(1);
+
+      if (clinicResult.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Clinic not found",
+        });
+      }
+
+      // Update clinic to unverified
+      await db
+        .update(clinics)
+        .set({ isVerified: false, updatedAt: new Date() })
+        .where(eq(clinics.id, input.clinicId));
+
+      return { success: true };
+    }),
+
+  getUnverifiedClinics: adminProcedure.query(async ({ ctx }) => {
+    if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+    const db = await getDb();
+    if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+    return db
+      .select()
+      .from(clinics)
+      .where(eq(clinics.isVerified, false));
+  }),
 });

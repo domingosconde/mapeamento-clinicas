@@ -187,7 +187,14 @@ export default function Home() {
                   onClick={() => navigate(`/clinic/${clinic.id}`)}
                 >
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-slate-900">{clinic.name}</h4>
+                    <div className="flex items-center gap-2 justify-between">
+                      <h4 className="font-semibold text-slate-900">{clinic.name}</h4>
+                      {clinic.isVerified && (
+                        <span className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 shrink-0">
+                          ✓
+                        </span>
+                      )}
+                    </div>
 
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <MapPin className="w-4 h-4 flex-shrink-0" />

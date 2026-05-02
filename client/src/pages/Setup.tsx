@@ -11,7 +11,7 @@ import { getLoginUrl } from "@/const";
 
 export default function Setup() {
   const { user, isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<"clinics" | "admins">("clinics");
+  const [activeTab, setActiveTab] = useState<"clinics" | "admins" | "verify">("clinics");
   const [clinicForm, setClinicForm] = useState({
     name: "",
     address: "",
@@ -48,6 +48,16 @@ export default function Setup() {
     },
     onError: (e: any) => toast.error(`Erro: ${e.message}`),
   });
+
+  const verifyClinic = trpc.system.verifyClinic.useMutation({
+    onSuccess: () => {
+      toast.success("Clínica verificada com sucesso!");
+      refetchUnverified();
+    },
+    onError: (e: any) => toast.error(`Erro: ${e.message}`),
+  });
+
+  const { data: unverifiedClinics = [], refetch: refetchUnverified } = trpc.system.getUnverifiedClinics.useQuery();
 
   const promoteAdmin = trpc.system.promoteToAdmin.useMutation({
     onSuccess: () => {
@@ -145,6 +155,17 @@ export default function Setup() {
           >
             <Users className="w-4 h-4" />
             Administradores
+          </button>
+          <button
+            onClick={() => setActiveTab("verify")}
+            className={`px-4 py-2 font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === "verify"
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            Verificar Clínicas
           </button>
         </div>
 
@@ -401,6 +422,68 @@ export default function Setup() {
                     <li>Responder comentários</li>
                     <li>Gerenciar agendamentos</li>
                   </ul>
+                </p>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Verify Tab */}
+        {activeTab === "verify" && (
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Clínicas Não Verificadas
+              </h2>
+
+              {unverifiedClinics.length === 0 ? (
+                <p className="text-slate-600 text-center py-8">
+                  Todas as clínicas foram verificadas! ✓
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {unverifiedClinics.map((clinic: any) => (
+                    <div
+                      key={clinic.id}
+                      className="border border-slate-200 rounded-lg p-4 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-bold text-slate-900">{clinic.name}</h3>
+                        <p className="text-sm text-slate-600">
+                          {clinic.address}, {clinic.city} - {clinic.state}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Criada em {new Date(clinic.createdAt).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => verifyClinic.mutate({ clinicId: clinic.id })}
+                        disabled={verifyClinic.isPending}
+                        className="bg-green-600 hover:bg-green-700 ml-4"
+                      >
+                        {verifyClinic.isPending ? "Verificando..." : "Verificar"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-6 bg-blue-50">
+              <h3 className="text-lg font-bold text-slate-900 mb-4">Sobre Verificação</h3>
+              <div className="space-y-3 text-sm text-slate-700">
+                <p>
+                  <strong>O que é uma clínica verificada?</strong> Uma clínica verificada foi validada
+                  pelo sistema e aparece com um badge ✓ no perfil e no mapa.
+                </p>
+                <p>
+                  <strong>Por que verificar?</strong> Ajuda a garantir que as clínicas listadas são
+                  legítimas e confiáveis.
+                </p>
+                <p>
+                  <strong>Como verificar?</strong> Revise os dados da clínica e clique em "Verificar"
+                  se tudo estiver correto.
                 </p>
               </div>
             </Card>
