@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import ClinicDetail from "./pages/ClinicDetail";
 import AdminDashboard from "./pages/AdminDashboard";
 import BookAppointment from "./pages/BookAppointment";
+import Setup from "./pages/Setup";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -17,6 +18,7 @@ function Router() {
       <Route path={"/clinic/:id"} component={ClinicDetail} />
       <Route path={"/clinic/:id/book"} component={BookAppointment} />
       <Route path={"/admin"} component={AdminDashboard} />
+      <Route path={"/setup"} component={Setup} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

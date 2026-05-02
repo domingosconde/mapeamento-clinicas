@@ -9,6 +9,7 @@ import { useParams } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { getLoginUrl } from "@/const";
 
 export default function BookAppointment() {
   const { id } = useParams<{ id: string }>();
@@ -78,7 +79,9 @@ export default function BookAppointment() {
           <p className="text-gray-600 mb-6">
             Você precisa estar autenticado para agendar uma consulta.
           </p>
-          <Button className="w-full">Fazer Login</Button>
+          <Button asChild className="w-full">
+            <a href={getLoginUrl()}>Fazer Login</a>
+          </Button>
         </Card>
       </div>
     );

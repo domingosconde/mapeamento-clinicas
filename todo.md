@@ -170,3 +170,80 @@
 - [x] 22 testes unitários passando
 - [x] TypeScript sem erros
 - [x] Pronto para produção
+
+
+## Melhorias Implementadas (v3.1)
+
+### Acesso Público Melhorado
+- [x] Remover redirecionamento automático para login (visitantes podem navegar)
+- [x] Homepage acessível sem autenticação
+- [x] Busca e filtro funcionam para visitantes
+- [x] Perfis de clínicas visíveis para todos
+
+### Ordenação de Resultados
+- [x] Implementar ordenação na pesquisa de clínicas (relevância + avaliação + nome)
+- [x] Implementar ordenação em listagem geral de clínicas (avaliação + nome)
+- [x] Implementar ordenação em filtro por especialidade (avaliação + nome)
+
+### Página de Setup para Administradores
+- [x] Criar página /setup protegida para admins
+- [x] Aba "Clínicas" para criar novas clínicas
+- [x] Aba "Administradores" para promover usuários
+
+### Procedures tRPC Novas
+- [x] system.createClinic - Criar clínica com dados completos
+- [x] system.promoteToAdmin - Promover usuário a admin por email
+
+### Melhorias de UX
+- [x] Adicionar link de Setup no header da homepage
+- [x] Melhorar experiência de visitante no BookAppointment (botão de login)
+- [x] Melhorar experiência de visitante no ClinicDetail
+
+### Qualidade
+- [x] Todos os testes passando (22 testes)
+- [x] TypeScript sem erros
+- [x] Build sem warnings
+
+## Fluxo de Acesso (v3.1)
+
+### Visitante (sem login)
+1. Acessa homepage
+2. Vê mapa com clínicas
+3. Pode buscar e filtrar
+4. Clica em clínica para ver detalhes
+5. Vê avaliações e comentários
+6. Ao clicar em "Agendar" ou "Avaliar", é redirecionado para login
+
+### Paciente (autenticado)
+1. Faz login via Manus OAuth
+2. Acessa homepage
+3. Pode deixar avaliações e comentários
+4. Pode agendar consultas
+
+### Administrador
+1. Faz login via Manus OAuth
+2. Sistema o reconhece como admin (se promovido)
+3. Vê botões "Setup" e "Admin" no header
+4. Em Setup: pode criar clínicas e promover admins
+5. Em Admin: gerencia sua clínica
+
+## Como Usar
+
+### Criar Primeira Clínica
+1. Faça login como proprietário (será admin automaticamente)
+2. Clique em "Setup" no header
+3. Preencha dados da clínica
+4. Use coordenadas GPS (ex: -23.5505, -46.6333)
+5. Clique em "Criar Clínica"
+
+### Promover Usuário a Admin
+1. Faça login como admin
+2. Clique em "Setup"
+3. Vá para aba "Administradores"
+4. Digite o email do usuário
+5. Clique em "Promover a Admin"
+
+### Buscar Clínicas
+1. Na homepage, digite nome da clínica
+2. Resultados aparecem em ordem de relevância
+3. Clique em clínica para ver detalhes

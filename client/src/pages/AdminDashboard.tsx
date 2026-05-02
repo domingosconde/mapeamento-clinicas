@@ -9,6 +9,7 @@ import { useState } from "react";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 
+
 type Tab = "info" | "specialties" | "comments" | "appointments";
 
 export default function AdminDashboard() {

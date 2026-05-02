@@ -103,9 +103,14 @@ export default function Home() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-slate-600">{user?.name}</span>
                 {user?.role === "admin" && (
-                  <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
-                    Admin
-                  </Button>
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => navigate("/setup")}>
+                      Setup
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => navigate("/admin")}>
+                      Admin
+                    </Button>
+                  </>
                 )}
               </div>
             ) : (

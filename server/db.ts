@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties, clinicResponses, appointments, appointmentSlots } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import type { InsertClinic, InsertRating, InsertComment, InsertClinicResponse, InsertAppointment, InsertAppointmentSlot } from "../drizzle/schema";
+import { desc, asc } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -94,7 +95,15 @@ export async function getUserByOpenId(openId: string) {
 export async function getAllClinics() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(clinics);
+  return db
+    .select()
+    .from(clinics)
+    .orderBy(
+      // Order by average rating (descending)
+      desc(clinics.averageRating),
+      // Then alphabetically
+      asc(clinics.name)
+    );
 }
 
 export async function getClinicById(id: number) {
@@ -111,7 +120,13 @@ export async function getClinicsBySpecialty(specialtyId: number) {
     .select()
     .from(clinics)
     .innerJoin(clinicSpecialties, eq(clinics.id, clinicSpecialties.clinicId))
-    .where(eq(clinicSpecialties.specialtyId, specialtyId));
+    .where(eq(clinicSpecialties.specialtyId, specialtyId))
+    .orderBy(
+      // Order by average rating (descending)
+      desc(clinics.averageRating),
+      // Then alphabetically
+      asc(clinics.name)
+    );
 }
 
 export async function searchClinics(query: string) {
@@ -120,7 +135,15 @@ export async function searchClinics(query: string) {
   return db
     .select()
     .from(clinics)
-    .where(like(clinics.name, `%${query}%`));
+    .where(like(clinics.name, `%${query}%`))
+    .orderBy(
+      // Prioritize clinics that start with the query
+      sql`CASE WHEN ${clinics.name} LIKE ${query + '%'} THEN 0 ELSE 1 END`,
+      // Then order by average rating (descending)
+      desc(clinics.averageRating),
+      // Finally alphabetically
+      asc(clinics.name)
+    );
 }
 
 // Specialty queries
