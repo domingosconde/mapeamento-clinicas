@@ -227,7 +227,7 @@
 4. Em Setup: pode criar clínicas e promover admins
 5. Em Admin: gerencia sua clínica
 
-## Melhorias Implementadas (v3.2)
+## Melhorias Implementadas (v3.3)
 
 ### Página de Boas-vindas
 - [x] Criar página /welcome com 3 opções de acesso
@@ -246,12 +246,21 @@
 - [x] Badge visual "✓ Verificada" na listagem
 - [x] Filtro de clínicas não verificadas
 
+### Calendário Visual para Agendamentos
+- [x] Instalar react-calendar
+- [x] Criar componente DatePicker reutilizável
+- [x] Integrar no BookAppointment
+- [x] Desabilitar domingos e datas passadas
+- [x] Mostrar data selecionada
+- [x] Estilos customizados para o calendário
+
 ### Qualidade Final
 - [x] 22 testes unitários passando
 - [x] TypeScript sem erros
 - [x] Build sem warnings
 - [x] Servidor rodando normalmente
 - [x] Todas as rotas funcionando
+- [x] Procedures retornando dados corretos
 
 ## Como Usar
 

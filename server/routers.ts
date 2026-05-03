@@ -62,6 +62,10 @@ export const appRouter = router({
       .input(z.object({ specialtyId: z.number() }))
       .query(async ({ input }) => getClinicsBySpecialty(input.specialtyId)),
 
+    getSpecialties: publicProcedure
+      .input(z.object({ clinicId: z.number() }))
+      .query(async ({ input }) => getClinicSpecialties(input.clinicId)),
+
     update: protectedProcedure
       .input(z.object({
         id: z.number(),
@@ -142,7 +146,8 @@ export const appRouter = router({
 
         await db.insert(ratings).values(newRating);
         await recalculateClinicRating(input.clinicId);
-        return { success: true };
+        const createdRating = await getUserRating(input.clinicId, ctx.user.id);
+        return createdRating || { success: true };
       }),
   }),
 
@@ -171,7 +176,8 @@ export const appRouter = router({
         };
 
         await db.insert(comments).values(newComment);
-        return { success: true };
+        const createdComments = await getClinicCommentsWithUser(input.clinicId);
+        return createdComments[createdComments.length - 1] || { success: true };
       }),
 
     reply: protectedProcedure

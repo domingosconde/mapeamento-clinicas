@@ -5,17 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import DatePicker from "@/components/DatePicker";
 
 export default function BookAppointment() {
   const { id } = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const clinicId = id ? parseInt(id) : 0;
 
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [formData, setFormData] = useState({
     appointmentDate: "",
     startTime: "",
@@ -24,6 +28,15 @@ export default function BookAppointment() {
     patientPhone: "",
     notes: "",
   });
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setFormData({
+      ...formData,
+      appointmentDate: date.toISOString().split("T")[0],
+    });
+    setShowCalendar(false);
+  };
 
   const clinicQuery = trpc.clinics.getById.useQuery({ id: clinicId });
   const createAppointmentMutation = trpc.appointments.create.useMutation();
@@ -98,10 +111,61 @@ export default function BookAppointment() {
   const clinic = clinicQuery.data;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Voltar
+          </Button>
+          <h1 className="text-xl font-bold text-slate-900">Agendar Consulta</h1>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Calendar Column */}
+          <div className="lg:col-span-1">
+            {showCalendar && (
+              <DatePicker
+                onDateSelect={handleDateSelect}
+                minDate={new Date()}
+                selectedDate={selectedDate || undefined}
+              />
+            )}
+            {!showCalendar && (
+              <Card className="p-6">
+                <Button
+                  onClick={() => setShowCalendar(true)}
+                  className="w-full"
+                  variant="outline"
+                >
+                  Selecionar Data
+                </Button>
+                {selectedDate && (
+                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-slate-600">
+                      <strong>Data Selecionada:</strong>
+                    </p>
+                    <p className="text-lg font-semibold text-green-600 mt-1">
+                      {selectedDate.toLocaleDateString("pt-BR", {
+                        weekday: "short",
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                )}
+              </Card>
+            )}
+          </div>
+
+          {/* Form Column */}
+          <div className="lg:col-span-2">
         <Card className="p-8">
-          <h1 className="text-3xl font-bold mb-2">Agendar Consulta</h1>
+          <h2 className="text-2xl font-bold mb-2">Dados do Agendamento</h2>
           {clinic && (
             <p className="text-gray-600 mb-8">
               Clínica: <span className="font-semibold">{clinic.name}</span>
@@ -222,6 +286,8 @@ export default function BookAppointment() {
             * Campos obrigatórios. Você receberá uma confirmação por email após o agendamento.
           </p>
         </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
