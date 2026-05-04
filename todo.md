@@ -282,3 +282,34 @@
 1. Na homepage, digite nome da clínica
 2. Resultados aparecem em ordem de relevância
 3. Clique em clínica para ver detalhes
+
+
+## Correções Implementadas (v3.4)
+
+- [x] Corrigir redirecionamento de autenticação - visitantes acessam sem login
+- [x] Permitir que usuários não-admin vejam a homepage
+- [x] Adicionar marcadores de clínicas no mapa com destaque visual
+- [x] Marcadores verdes para clínicas verificadas
+- [x] Marcadores azuis para clínicas não verificadas
+- [x] Ícone ✓ em clínicas verificadas
+- [x] 22 testes passando
+- [x] TypeScript sem erros
+
+## Status Final (v3.4 - Completo)
+
+### ✅ Acesso Público Corrigido
+- Visitantes acessam homepage sem login em qualquer dispositivo
+- Botão "Entrar / Agendar" no header
+- Usuários não-admin podem ver a homepage normalmente
+
+### ✅ Destaque de Clínicas no Mapa
+- Marcadores verdes para clínicas verificadas
+- Marcadores azuis para clínicas não verificadas
+- Ícone ✓ em clínicas verificadas
+- Sombra e borda nos marcadores para melhor visibilidade
+
+### ✅ Qualidade
+- 22 testes unitários passando
+- TypeScript sem erros
+- Build sem warnings
+- Servidor rodando normalmente

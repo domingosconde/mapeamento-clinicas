@@ -1,4 +1,3 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -8,9 +7,10 @@ import { trpc } from "@/lib/trpc";
 import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { MapView } from "@/components/Map";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth({ redirectOnUnauthenticated: false });
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState<number | null>(null);
