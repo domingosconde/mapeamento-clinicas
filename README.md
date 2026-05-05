@@ -2,7 +2,7 @@
 
 Um sistema web elegante e polido para mapeamento e descoberta de clínicas médicas. Pacientes podem explorar clínicas através de um mapa interativo, filtrar por especialidade e deixar avaliações. Clínicas podem gerenciar suas informações e responder aos comentários.
 
-## 🎯 Funcionalidades Principais
+## Funcionalidades Principais
 
 ### Para Pacientes
 - **Mapa Interativo** - Visualize clínicas em um mapa com marcadores clicáveis
@@ -18,7 +18,7 @@ Um sistema web elegante e polido para mapeamento e descoberta de clínicas médi
 - **Responder Comentários** - Interaja com pacientes respondendo seus reviews
 - **Visualizar Avaliações** - Acompanhe o rating médio e feedback
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Requisitos
 - Node.js 22+
@@ -51,7 +51,7 @@ pnpm dev
 
 O servidor estará disponível em `http://localhost:3000`
 
-## 📁 Estrutura do Projeto
+##  Estrutura do Projeto
 
 ```
 mapeamento-clinicas/
@@ -70,7 +70,7 @@ mapeamento-clinicas/
 └── package.json
 ```
 
-## 🗄️ Banco de Dados
+##  Banco de Dados
 
 O projeto usa MySQL com as seguintes tabelas:
 
@@ -82,7 +82,7 @@ O projeto usa MySQL com as seguintes tabelas:
 - **comments** - Comentários e reviews
 - **clinicResponses** - Respostas de clínicas aos comentários
 
-## 🧪 Testes
+##  Testes
 
 ```bash
 # Executar todos os testes
@@ -95,16 +95,16 @@ pnpm test
 # - Operações administrativas
 ```
 
-**Status:** 22 testes passando ✅
+**Status:** 22 testes passando 
 
-## 🎨 Design
+## Design
 
 - **Framework UI:** Tailwind CSS 4 + shadcn/ui
 - **Tema:** Claro com cores sofisticadas (azul e cinza)
 - **Responsivo:** Mobile-first, otimizado para todos os dispositivos
 - **Componentes:** Reutilizáveis e acessíveis
 
-## 📡 API (tRPC)
+## API (tRPC)
 
 ### Procedures Públicas
 
@@ -155,14 +155,14 @@ clinics.removeSpecialty({ clinicId, specialtyId })   // Remover especialidade
 comments.reply({ commentId, text })     // Responder comentário
 ```
 
-## 🔐 Autenticação
+## Autenticação
 
 O projeto usa **Manus OAuth** para autenticação segura. Usuários podem:
 - Fazer login como paciente
 - Deixar avaliações e comentários
 - Admins de clínicas gerenciam suas informações
 
-## 📊 Dados de Demonstração
+## Dados de Demonstração
 
 Para popular o banco com dados de teste:
 
@@ -175,7 +175,7 @@ Isso criará:
 - 8 especialidades
 - Avaliações e comentários de exemplo
 
-## 🛠️ Desenvolvimento
+## Desenvolvimento
 
 ```bash
 # Verificar tipos TypeScript
@@ -191,7 +191,7 @@ pnpm build
 pnpm start
 ```
 
-## 📝 Variáveis de Ambiente
+## Variáveis de Ambiente
 
 ```env
 DATABASE_URL=mysql://user:password@localhost:3306/clinicas
@@ -201,7 +201,7 @@ OAUTH_SERVER_URL=https://api.manus.im
 VITE_OAUTH_PORTAL_URL=https://manus.im/login
 ```
 
-## 🚀 Deploy
+## Deploy
 
 O projeto está pronto para deploy em plataformas como:
 - Vercel
@@ -209,12 +209,12 @@ O projeto está pronto para deploy em plataformas como:
 - Render
 - Manus (recomendado)
 
-## 📚 Documentação Adicional
+## Documentação Adicional
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Arquitetura detalhada
 - [todo.md](./todo.md) - Rastreamento de funcionalidades
 
-## 🤝 Contribuindo
+##  Contribuindo
 
 Melhorias e sugestões são bem-vindas! Abra uma issue ou pull request.
 
@@ -222,7 +222,7 @@ Melhorias e sugestões são bem-vindas! Abra uma issue ou pull request.
 
 MIT
 
-## 🎯 Próximos Passos
+## Próximos Passos
 
 - Upload de fotos de clínicas
 - Ordenação por distância com geolocalização
