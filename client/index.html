@@ -1,135 +1,26 @@
-<!DOCTYPE html>
-<html lang="pt-PT">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapeamento de Clínicas</title>
-    <link rel="stylesheet" href="src/styles.css">
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDummyKey&libraries=marker"></script>
-</head>
-<body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
-                <div class="logo">
-                    <span class="logo-icon">📍</span>
-                    <span class="logo-text">Clínicas Próximas</span>
-                </div>
-                <nav class="nav">
-                    <button id="loginBtn" class="btn btn-primary">Entrar / Agendar</button>
-                    <button id="setupBtn" class="btn btn-secondary" style="display:none;">Setup</button>
-                    <button id="adminBtn" class="btn btn-secondary" style="display:none;">Admin</button>
-                    <button id="logoutBtn" class="btn btn-outline" style="display:none;">Sair</button>
-                </nav>
-            </div>
-        </div>
-    </header>
+<!doctype html>
+<html lang="en">
 
-    <!-- Main Content -->
-    <main id="app">
-        <!-- Home Page -->
-        <div id="home-page" class="page active">
-            <!-- Hero Section -->
-            <section class="hero">
-                <div class="container">
-                    <h1>Encontre as Melhores Clínicas</h1>
-                    <p>Busque por especialidade ou localização</p>
-                    
-                    <div class="search-section">
-                        <input type="text" id="searchInput" class="search-input" placeholder="Buscar clínicas...">
-                        <select id="specialtyFilter" class="specialty-select">
-                            <option value="">Todas as especialidades</option>
-                        </select>
-                    </div>
-                </div>
-            </section>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Mapeamento de Clínicas</title>    
+    <!-- THIS IS THE START OF A COMMENT BLOCK, BLOCK TO BE DELETED: Google Fonts here, example:
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    THIS IS THE END OF A COMMENT BLOCK, BLOCK TO BE DELETED -->
+  </head>
 
-            <!-- Map Section -->
-            <section class="map-section">
-                <div id="map" class="map"></div>
-            </section>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script
+      defer
+      src="%VITE_ANALYTICS_ENDPOINT%/umami"
+      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"></script>
+  </body>
 
-            <!-- Results Section -->
-            <section class="results-section">
-                <div class="container">
-                    <div class="results-grid">
-                        <!-- Left: Map -->
-                        <div class="results-map" id="resultsMap"></div>
-                        
-                        <!-- Right: Clinics List -->
-                        <div class="results-list">
-                            <h2 id="resultsCount">0 Clínicas Encontradas</h2>
-                            <div id="clinicsList" class="clinics-list"></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <!-- Clinic Detail Page -->
-        <div id="clinic-detail-page" class="page">
-            <div class="container">
-                <button class="btn btn-outline" onclick="showPage('home-page')">← Voltar</button>
-                
-                <div class="clinic-detail">
-                    <div id="clinicDetail"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Admin Page -->
-        <div id="admin-page" class="page">
-            <div class="container">
-                <h1>Dashboard Administrativo</h1>
-                
-                <div class="admin-tabs">
-                    <button class="tab-btn active" onclick="switchAdminTab('clinics')">Clínicas</button>
-                    <button class="tab-btn" onclick="switchAdminTab('verify')">Verificar</button>
-                    <button class="tab-btn" onclick="switchAdminTab('users')">Usuários</button>
-                </div>
-
-                <!-- Clinics Tab -->
-                <div id="clinics-tab" class="tab-content active">
-                    <h2>Criar Nova Clínica</h2>
-                    <form id="clinicForm" class="form">
-                        <input type="text" placeholder="Nome da clínica" required>
-                        <input type="email" placeholder="Email" required>
-                        <input type="tel" placeholder="Telefone" required>
-                        <input type="text" placeholder="Endereço" required>
-                        <input type="number" placeholder="Latitude" step="0.0001" required>
-                        <input type="number" placeholder="Longitude" step="0.0001" required>
-                        <button type="submit" class="btn btn-primary">Criar Clínica</button>
-                    </form>
-                </div>
-
-                <!-- Verify Tab -->
-                <div id="verify-tab" class="tab-content">
-                    <h2>Verificar Clínicas</h2>
-                    <div id="verifyList" class="verify-list"></div>
-                </div>
-
-                <!-- Users Tab -->
-                <div id="users-tab" class="tab-content">
-                    <h2>Promover Admin</h2>
-                    <form id="promoteForm" class="form">
-                        <input type="email" id="emailInput" placeholder="Email do novo admin" required>
-                        <button type="submit" class="btn btn-primary">Promover</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2026 Mapeamento de Clínicas. Todos os direitos reservados.</p>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
-    <script type="module" src="src/api.js"></script>
-    <script type="module" src="src/app.js"></script>
-</body>
 </html>
