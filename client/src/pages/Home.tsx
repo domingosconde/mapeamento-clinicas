@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { MapPin, Search, Star, Phone, Mail, Filter } from "lucide-react";
+import { MapPin, Search, Star, Phone, Mail } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useState, useRef, useCallback } from "react";
@@ -13,22 +13,14 @@ export default function Home() {
   const { user, isAuthenticated } = useAuth({ redirectOnUnauthenticated: false });
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSpecialty, setSelectedSpecialty] = useState<number | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
 
-  // Fetch all clinics and specialties
+  // Fetch all clinics
   const { data: allClinics = [] } = trpc.clinics.list.useQuery();
-  const { data: allSpecialties = [] } = trpc.specialties.list.useQuery();
 
-  // Fetch clinics by specialty when one is selected
-  const { data: clinicsBySpecialty = [] } = trpc.clinics.getBySpecialty.useQuery(
-    { specialtyId: selectedSpecialty! },
-    { enabled: selectedSpecialty !== null }
-  );
-
-  // Compute displayed clinics
-  let filteredClinics = selectedSpecialty !== null ? clinicsBySpecialty.map((r: any) => r.clinics ?? r) : allClinics;
+  // Compute displayed clinics (only by search query)
+  let filteredClinics = allClinics;
   if (searchQuery) {
     filteredClinics = filteredClinics.filter((c: any) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -78,15 +70,8 @@ export default function Home() {
 
   const handleSearchChange = (v: string) => {
     setSearchQuery(v);
-    const base = selectedSpecialty !== null ? clinicsBySpecialty.map((r: any) => r.clinics ?? r) : allClinics;
-    const next = base.filter((c: any) => c.name.toLowerCase().includes(v.toLowerCase()));
+    const next = allClinics.filter((c: any) => c.name.toLowerCase().includes(v.toLowerCase()));
     handleFilterChange(next);
-  };
-
-  const handleSpecialtyChange = (id: number | null) => {
-    setSelectedSpecialty(id);
-    const base = id !== null ? clinicsBySpecialty.map((r: any) => r.clinics ?? r) : allClinics;
-    handleFilterChange(base);
   };
 
   return (
@@ -138,19 +123,6 @@ export default function Home() {
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 bg-white text-slate-900 border-0"
               />
-            </div>
-            <div className="relative">
-              <Filter className="absolute left-3 top-3 w-4 h-4 text-slate-400 pointer-events-none" />
-              <select
-                value={selectedSpecialty ?? ""}
-                onChange={(e) => handleSpecialtyChange(e.target.value ? parseInt(e.target.value) : null)}
-                className="pl-9 pr-4 py-2 bg-white text-slate-900 rounded-lg border-0 font-medium h-10 appearance-none cursor-pointer"
-              >
-                <option value="">Todas as especialidades</option>
-                {allSpecialties.map((s: any) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
             </div>
           </div>
         </div>
