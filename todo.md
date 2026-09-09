@@ -313,3 +313,27 @@
 - TypeScript sem erros
 - Build sem warnings
 - Servidor rodando normalmente
+
+
+## Nova identidade visual — 2026-09-05
+- [x] Inspecionar o arquivo de referência CliniEncontra(1).zip
+- [x] Auditar a interface atual da homepage e os tokens globais
+- [x] Definir paleta, tipografia, espaçamento, bordas, sombras e estados de foco
+- [x] Redesenhar a homepage com UX mais clara para busca, mapa e lista de clínicas
+- [x] Harmonizar header, cards, badges, botões e estados vazios
+- [x] Validar acessibilidade e contraste
+- [x] Validar responsividade em desktop e mobile
+- [x] Executar testes e verificar a interface visualmente
+- [x] Salvar checkpoint da nova identidade visual
+- [x] Documentar os principais arquivos editáveis para o usuário
+
+Restrição: preservar mapa, busca por nome, autenticação, navegação e demais regras de negócio existentes; não adicionar dados fictícios nem expor segredos.
+
+Nota: o arquivo CliniEncontra(1).zip é tratado apenas como referência fornecida pelo usuário; seus conteúdos serão inspecionados de forma passiva.
+
+- [x] Adicionar estado de fallback visual quando o mapa Google Maps não carregar, mantendo a lista de clínicas utilizável
+
+- [x] Corrigir a autorização de updateStatus para impedir que utilizadores comuns alterem agendamentos
+
+- [x] Executar validação real de acessibilidade da homepage com teclado, foco, labels, estados e aria-live
+- [x] Verificar contraste das cores principais e estados da homepage e documentar os resultados

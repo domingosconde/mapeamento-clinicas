@@ -76,7 +76,7 @@
 
 /// <reference types="@types/google.maps" />
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePersistFn } from "@/hooks/usePersistFn";
 import { cn } from "@/lib/utils";
 
@@ -92,18 +92,38 @@ const FORGE_BASE_URL =
   "https://forge.butterfly-effect.dev";
 const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
 
-function loadMapScript() {
-  return new Promise(resolve => {
+function loadMapScript(): Promise<void> {
+  if (window.google?.maps?.Map) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>(
+      "script[data-clinic-maps]",
+    );
+
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener(
+        "error",
+        () => reject(new Error("Não foi possível carregar o mapa.")),
+        { once: true },
+      );
+      return;
+    }
+
     const script = document.createElement("script");
+    script.dataset.clinicMaps = "true";
     script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
     script.async = true;
     script.crossOrigin = "anonymous";
     script.onload = () => {
-      resolve(null);
-      script.remove(); // Clean up immediately
+      script.remove();
+      resolve();
     };
     script.onerror = () => {
-      console.error("Failed to load Google Maps script");
+      script.remove();
+      reject(new Error("Não foi possível carregar o mapa."));
     };
     document.head.appendChild(script);
   });
@@ -114,6 +134,7 @@ interface MapViewProps {
   initialCenter?: google.maps.LatLngLiteral;
   initialZoom?: number;
   onMapReady?: (map: google.maps.Map) => void;
+  onMapError?: (error: Error) => void;
 }
 
 export function MapView({
@@ -121,27 +142,36 @@ export function MapView({
   initialCenter = { lat: 37.7749, lng: -122.4194 },
   initialZoom = 12,
   onMapReady,
+  onMapError,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<google.maps.Map | null>(null);
+  const [mapError, setMapError] = useState(false);
 
   const init = usePersistFn(async () => {
-    await loadMapScript();
-    if (!mapContainer.current) {
-      console.error("Map container not found");
-      return;
-    }
-    map.current = new window.google.maps.Map(mapContainer.current, {
-      zoom: initialZoom,
-      center: initialCenter,
-      mapTypeControl: true,
-      fullscreenControl: true,
-      zoomControl: true,
-      streetViewControl: true,
-      mapId: "DEMO_MAP_ID",
-    });
-    if (onMapReady) {
-      onMapReady(map.current);
+    try {
+      await loadMapScript();
+      if (!mapContainer.current || !window.google?.maps?.Map) {
+        throw new Error("O mapa não está disponível neste momento.");
+      }
+
+      map.current = new window.google.maps.Map(mapContainer.current, {
+        zoom: initialZoom,
+        center: initialCenter,
+        mapTypeControl: true,
+        fullscreenControl: true,
+        zoomControl: true,
+        streetViewControl: true,
+        mapId: "DEMO_MAP_ID",
+      });
+      onMapReady?.(map.current);
+    } catch (error) {
+      const mapError = error instanceof Error
+        ? error
+        : new Error("Não foi possível carregar o mapa.");
+      console.warn("Google Maps unavailable; showing the clinic list fallback.", mapError);
+      setMapError(true);
+      onMapError?.(mapError);
     }
   });
 
@@ -149,7 +179,30 @@ export function MapView({
     init();
   }, [init]);
 
-  return (
-    <div ref={mapContainer} className={cn("w-full h-[500px]", className)} />
-  );
+  if (mapError) {
+    return (
+      <div
+        className={cn(
+          "flex h-[500px] w-full items-center justify-center bg-[radial-gradient(circle_at_30%_20%,oklch(0.94_0.06_181),transparent_42%),linear-gradient(135deg,oklch(0.96_0.02_188),oklch(0.9_0.03_195))] p-6",
+          className,
+        )}
+        role="status"
+        aria-live="polite"
+      >
+        <div className="max-w-sm rounded-2xl border border-white/80 bg-white/90 p-6 text-center shadow-xl backdrop-blur">
+          <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <span className="text-xl" aria-hidden="true">⌖</span>
+          </div>
+          <p className="font-display text-base font-semibold text-foreground">
+            Mapa temporariamente indisponível
+          </p>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            A lista de clínicas continua disponível. Tente novamente mais tarde para ver a localização no mapa.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <div ref={mapContainer} className={cn("h-[500px] w-full", className)} />;
 }
