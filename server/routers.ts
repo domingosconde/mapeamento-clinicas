@@ -33,6 +33,7 @@ import {
 } from "./db";
 import { ratings, comments, type InsertRating, type InsertComment } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
+import { storagePut } from "./storage";
 import { and, eq } from "drizzle-orm";
 
 export const appRouter = router({
@@ -49,6 +50,11 @@ export const appRouter = router({
 
   clinics: router({
     list: publicProcedure.query(async () => getAllClinics()),
+
+    getMine: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+      return getClinicByAdminId(ctx.user.id);
+    }),
 
     search: publicProcedure
       .input(z.object({ query: z.string() }))
@@ -86,6 +92,35 @@ export const appRouter = router({
         }
         await updateClinic(input.id, input);
         return { success: true };
+      }),
+
+    uploadPhoto: protectedProcedure
+      .input(z.object({
+        clinicId: z.number(),
+        fileName: z.string().min(1).max(120),
+        contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+        base64: z.string().min(1).max(7_000_000),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic || clinic.id !== input.clinicId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+
+        const safeFileName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
+        const fileBuffer = Buffer.from(input.base64, "base64");
+        if (fileBuffer.length > 5 * 1024 * 1024) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "A imagem deve ter no máximo 5MB." });
+        }
+
+        const uploaded = await storagePut(
+          `clinics/${input.clinicId}/photos/${Date.now()}-${safeFileName}`,
+          fileBuffer,
+          input.contentType,
+        );
+        await updateClinic(input.clinicId, { photoUrl: uploaded.url });
+        return { success: true, photoUrl: uploaded.url };
       }),
 
     addSpecialty: protectedProcedure

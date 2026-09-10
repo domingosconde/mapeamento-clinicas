@@ -37,3 +37,12 @@ A homepage continua a consumir dados pelas procedures tRPC existentes. A nova id
 ## Fallback do mapa
 
 Se o script do Google Maps falhar ou estiver indisponível, `MapView` apresenta uma mensagem visual e a lista de clínicas continua utilizável. Isso evita que uma integração externa indisponível bloqueie a tarefa principal do visitante.
+
+
+## Funcionalidades adicionadas após a identidade visual
+
+A página `/appointments` apresenta o histórico privado do paciente, com estados de carregamento, erro e vazio. O cabeçalho da homepage apresenta o CTA **Meus agendamentos** para utilizadores autenticados. O fluxo OAuth aceita um caminho de retorno seguro, preservando o acesso à página solicitada depois do login.
+
+No dashboard administrativo, o componente `PhotoUploader` permite selecionar JPEG, PNG ou WebP até 5 MB. O backend valida o administrador da clínica, envia o ficheiro para o storage configurado, guarda apenas o `photoUrl` na tabela `clinics` e atualiza o preview após o refetch. O preview inválido regressa ao estado de seleção, sem mostrar imagem quebrada.
+
+Os testes automatizados cobrem a busca por nome, o parsing do state OAuth, a autorização do upload e as validações de MIME e tamanho. A suíte atual foi executada com 31 testes aprovados; o build apresenta apenas o aviso não bloqueante de chunk JavaScript acima de 500 kB.

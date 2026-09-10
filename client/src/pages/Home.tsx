@@ -24,11 +24,20 @@ import { MapView } from "@/components/Map";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { searchClinicsByName } from "@/lib/clinicSearch";
 
+const escapeHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
 export default function Home() {
   const { user, isAuthenticated } = useAuth({ redirectOnUnauthenticated: false });
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const mapRef = useRef<google.maps.Map | null>(null);
+  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
 
   const {
@@ -76,7 +85,17 @@ export default function Home() {
         });
 
         marker.addListener("click", () => {
-          navigate(`/clinic/${clinic.id}`);
+          const verifiedLabel = clinic.isVerified ? "<span style=\"color:#047857;font-weight:700\">✓ Clínica verificada</span>" : "<span style=\"color:#64748b\">Clínica em análise</span>";
+          const clinicName = escapeHtml(clinic.name);
+          const city = escapeHtml(clinic.city || "Localização não informada");
+          const content = `
+            <div role="dialog" aria-label="Informações de ${clinicName}" style="min-width:190px;padding:4px 2px;font-family:DM Sans,Arial,sans-serif;color:#18383b">
+              <strong style="display:block;font-size:14px;margin-bottom:6px">${clinicName}</strong>
+              <span style="display:block;font-size:12px;margin-bottom:5px;color:#64748b">${city}</span>
+              <span style="font-size:11px">${verifiedLabel}</span>
+            </div>`;
+          infoWindowRef.current?.setContent(content);
+          infoWindowRef.current?.open({ map, anchor: marker });
         });
 
         markersRef.current.push(marker);
@@ -88,6 +107,7 @@ export default function Home() {
   const handleMapReady = useCallback(
     (map: google.maps.Map) => {
       mapRef.current = map;
+      infoWindowRef.current = new window.google.maps.InfoWindow();
       placeMarkers(map, filteredClinics);
     },
     [filteredClinics, placeMarkers],
@@ -137,6 +157,9 @@ export default function Home() {
                   <CircleUserRound className="size-4 text-primary" aria-hidden="true" />
                   <span className="max-w-[150px] truncate">{user?.name}</span>
                 </div>
+                <Button variant="outline" size="sm" onClick={() => navigate("/appointments")}>
+                  Meus agendamentos
+                </Button>
                 {user?.role === "admin" && (
                   <>
                     <Button variant="outline" size="sm" onClick={() => navigate("/setup")}>

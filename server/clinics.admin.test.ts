@@ -4,6 +4,26 @@ import type { TrpcContext } from "./_core/context";
 import type { User } from "../drizzle/schema";
 
 // Mock admin user context
+function createUserContext(): TrpcContext {
+  const user: User = {
+    id: 999999,
+    openId: "regular-user-999999",
+    email: "user@example.com",
+    name: "Regular User",
+    loginMethod: "manus",
+    role: "user",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+  };
+
+  return {
+    user,
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: {} as TrpcContext["res"],
+  };
+}
+
 function createAdminContext(): TrpcContext {
   const user: User = {
     id: 1,
@@ -77,6 +97,19 @@ describe("admin clinic operations", () => {
         });
         expect(Array.isArray(comments)).toBe(true);
       }
+    });
+
+    it("regular users cannot upload a clinic photo", async () => {
+      const userCaller = appRouter.createCaller(createUserContext());
+
+      await expect(
+        userCaller.clinics.uploadPhoto({
+          clinicId: 1,
+          fileName: "clinic.png",
+          contentType: "image/png",
+          base64: "cGxhY2Vob2xkZXI=",
+        }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
     });
   });
 });

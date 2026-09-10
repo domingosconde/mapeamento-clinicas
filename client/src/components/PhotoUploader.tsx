@@ -1,7 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { X, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface PhotoUploaderProps {
@@ -20,6 +20,10 @@ export default function PhotoUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(preview || null);
+
+  useEffect(() => {
+    setPreviewUrl(preview || null);
+  }, [preview]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -107,10 +111,13 @@ export default function PhotoUploader({
           <div className="relative rounded-lg overflow-hidden bg-slate-100 h-64">
             <img
               src={previewUrl}
-              alt="Preview"
+              alt="Foto atual da clínica"
+              onError={() => setPreviewUrl(null)}
               className="w-full h-full object-cover"
             />
-            <button
+              <button
+              type="button"
+              aria-label="Remover foto da clínica"
               onClick={handleRemove}
               disabled={isLoading}
               className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-colors"
@@ -133,6 +140,15 @@ export default function PhotoUploader({
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Selecionar foto da clínica"
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
             dragActive
               ? "border-blue-500 bg-blue-50"
@@ -154,6 +170,7 @@ export default function PhotoUploader({
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        aria-label="Ficheiro de foto da clínica"
         onChange={handleChange}
         className="hidden"
         disabled={isLoading}

@@ -8,13 +8,29 @@ import { trpc } from "@/lib/trpc";
 import { useState } from "react";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
+import PhotoUploader from "@/components/PhotoUploader";
 
+const fileToBase64 = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      resolve(result.split(",", 2)[1] ?? result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Não foi possível ler a imagem."));
+    reader.readAsDataURL(file);
+  });
 
 type Tab = "info" | "specialties" | "comments" | "appointments";
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("info");
+  const utils = trpc.useUtils();
+  const { data: myClinic, isLoading: isClinicLoading } = trpc.clinics.getMine.useQuery(undefined, {
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+  const clinicId = myClinic?.id ?? 0;
   const [replyTexts, setReplyTexts] = useState<Record<number, string>>({});
 
   const [form, setForm] = useState({
@@ -45,6 +61,27 @@ export default function AdminDashboard() {
     },
     onError: (e) => toast.error(`Erro: ${e.message}`),
   });
+
+  const uploadPhoto = trpc.clinics.uploadPhoto.useMutation({
+    onSuccess: async () => {
+      await utils.clinics.getMine.invalidate();
+      toast.success("Foto da clínica atualizada com sucesso!");
+    },
+    onError: (e) => toast.error(`Erro ao enviar foto: ${e.message}`),
+  });
+
+  const handlePhotoUpload = async (file: File) => {
+    const base64 = await fileToBase64(file);
+    if (!clinicId) {
+      throw new Error("A sua clínica ainda não está configurada.");
+    }
+    await uploadPhoto.mutateAsync({
+      clinicId,
+      fileName: file.name,
+      contentType: file.type as "image/jpeg" | "image/png" | "image/webp",
+      base64,
+    });
+  };
 
   const replyToComment = trpc.comments.reply.useMutation({
     onSuccess: () => {
@@ -134,7 +171,8 @@ export default function AdminDashboard() {
                   </div>
                   <Input placeholder="CEP" value={form.zipCode} onChange={(e) => setForm({...form, zipCode: e.target.value})} />
                   <Textarea placeholder="Horários de funcionamento (JSON)" value={form.openingHours} onChange={(e) => setForm({...form, openingHours: e.target.value})} />
-                  <Button onClick={() => updateClinic.mutate({ id: 1, ...form })} className="w-full gap-2">
+                  {myClinic && <PhotoUploader onUpload={handlePhotoUpload} isLoading={uploadPhoto.isPending} preview={myClinic.photoUrl ?? undefined} />}
+                  <Button onClick={() => updateClinic.mutate({ id: clinicId, ...form })} disabled={isClinicLoading || !clinicId} className="w-full gap-2">
                     <Save className="w-4 h-4" />
                     Salvar Informações
                   </Button>

@@ -28,6 +28,19 @@ const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
 const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
 
+export function decodeOAuthState(state: string): string {
+  try {
+    const decoded = JSON.parse(Buffer.from(state, "base64").toString("utf8")) as { redirectUri?: unknown };
+    if (typeof decoded.redirectUri === "string" && decoded.redirectUri.length > 0) {
+      return decoded.redirectUri;
+    }
+  } catch {
+    // Fall through to the legacy opaque base64 format.
+  }
+
+  return Buffer.from(state, "base64").toString("utf8");
+}
+
 class OAuthService {
   constructor(private client: ReturnType<typeof axios.create>) {
     console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
@@ -39,8 +52,7 @@ class OAuthService {
   }
 
   private decodeState(state: string): string {
-    const redirectUri = atob(state);
-    return redirectUri;
+    return decodeOAuthState(state);
   }
 
   async getTokenByCode(

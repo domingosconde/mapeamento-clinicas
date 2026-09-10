@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import BookAppointment from "./pages/BookAppointment";
 import Setup from "./pages/Setup";
 import Welcome from "./pages/Welcome";
+import AppointmentsHistory from "./pages/AppointmentsHistory";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -19,6 +20,7 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/clinic/:id"} component={ClinicDetail} />
       <Route path={"/clinic/:id/book"} component={BookAppointment} />
+      <Route path={"/appointments"} component={AppointmentsHistory} />
       <Route path={"/admin"} component={AdminDashboard} />
       <Route path={"/setup"} component={Setup} />
       <Route path={"/404"} component={NotFound} />

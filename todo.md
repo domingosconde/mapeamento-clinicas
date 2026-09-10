@@ -126,13 +126,13 @@
 - Cards com hover effects e transições suaves
 
 ## Funcionalidades Futuras (Backlog)
-- [ ] Upload de fotos de clínicas
+- [x] Upload de fotos de clínicas
 - [ ] Ordenação por distância com geolocalização do usuário
 - [ ] Sistema de moderação automática de comentários
 - [ ] Notificações para clínicas sobre novos comentários
 - [ ] Agendamento de consultas integrado
 - [ ] Sistema de avaliação de médicos individuais
-- [ ] Histórico de consultas do paciente
+- [x] Histórico de consultas do paciente
 - [ ] Integração com sistemas de pagamento
 - [ ] API pública para terceiros
 - [ ] Mobile app nativa
@@ -141,7 +141,7 @@
 - [x] Corrigir erro TypeScript em server/_core/storageProxy.ts
 - [x] Criar script de seed com dados de demonstração (3 clínicas, 8 especialidades)
 - [x] Adicionar documentação README.md completa
-- [ ] Implementar InfoWindow/popup real nos marcadores do mapa
+- [x] Implementar InfoWindow/popup real nos marcadores do mapa
 - [ ] Adicionar testes do componente ClinicDetail
 - [x] Adicionar testes do fluxo administrativo completo (clinics.update, add/remove specialty, comments.reply)
 - [ ] Implementar moderação/validação de conteúdo com isApproved
@@ -337,3 +337,19 @@ Nota: o arquivo CliniEncontra(1).zip é tratado apenas como referência fornecid
 
 - [x] Executar validação real de acessibilidade da homepage com teclado, foco, labels, estados e aria-live
 - [x] Verificar contraste das cores principais e estados da homepage e documentar os resultados
+
+- [x] Implementar página protegida para o histórico de agendamentos do paciente
+
+- [x] Adicionar CTA visível para pacientes autenticados abrirem /appointments
+- [x] Preservar o retorno para /appointments no fluxo de login do histórico
+- [x] Validar o fluxo visitante → login → histórico
+
+- [x] Corrigir o parser do SDK OAuth para extrair redirectUri do state JSON e preservar o formato legado
+- [x] Adicionar teste automatizado para o parsing de state OAuth e o retorno seguro do histórico
+- [x] Validar o fluxo de entrada do histórico com rota de visitante, state de retorno e suíte automatizada
+
+- [x] Integrar o upload validado de foto da clínica com storage e atualização do photoUrl
+
+- [x] Adicionar teste de autorização e validação para o upload de fotos
+
+- [x] Tratar preview de foto inválido no dashboard sem mostrar imagem quebrada
