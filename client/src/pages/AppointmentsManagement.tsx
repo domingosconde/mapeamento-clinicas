@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
+import { queryCache } from "@/lib/queryCache";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Calendar, Clock, User, Mail, Phone } from "lucide-react";
@@ -13,7 +14,7 @@ export default function AppointmentsManagement() {
 
   const appointmentsQuery = trpc.appointments.getClinicAppointments.useQuery(
     { clinicId: user?.id || 0 },
-    { enabled: !!user?.id }
+    { enabled: !!user?.id, ...queryCache.privateList }
   );
 
   const updateStatusMutation = trpc.appointments.updateStatus.useMutation({

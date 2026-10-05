@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { CalendarDays, Clock3, HeartHandshake, LogIn, MapPin, ShieldCheck } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { queryCache } from "@/lib/queryCache";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 
@@ -27,6 +28,7 @@ export default function AppointmentsHistory() {
   const [, navigate] = useLocation();
   const appointmentsQuery = trpc.appointments.getUserAppointments.useQuery(undefined, {
     enabled: isAuthenticated,
+    ...queryCache.privateList,
   });
 
   if (loading) {

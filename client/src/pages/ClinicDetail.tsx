@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MapPin, Phone, Mail, Globe, Clock, Star, MessageSquare, ArrowLeft, Building2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { queryCache } from "@/lib/queryCache";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";
@@ -23,21 +24,21 @@ export default function ClinicDetail() {
   // Fetch clinic details
   const { data: clinic, isLoading: clinicLoading } = trpc.clinics.getById.useQuery(
     { id: clinicId },
-    { enabled: clinicId > 0 }
+    { enabled: clinicId > 0, ...queryCache.publicDetail }
   );
 
   // Fetch ratings and comments
   const { data: clinicRatings = [], refetch: refetchRatings } = trpc.ratings.getByClinic.useQuery(
     { clinicId },
-    { enabled: clinicId > 0 }
+    { enabled: clinicId > 0, ...queryCache.publicList }
   );
   const { data: clinicComments = [], refetch: refetchComments } = trpc.comments.getByClinic.useQuery(
     { clinicId },
-    { enabled: clinicId > 0 }
+    { enabled: clinicId > 0, ...queryCache.publicList }
   );
   const { data: userExistingRating } = trpc.ratings.getUserRating.useQuery(
     { clinicId, userId: user?.id || 0 },
-    { enabled: clinicId > 0 && isAuthenticated && !!user?.id }
+    { enabled: clinicId > 0 && isAuthenticated && !!user?.id, ...queryCache.privateDetail }
   );
 
   // Mutations

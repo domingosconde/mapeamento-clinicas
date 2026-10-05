@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { queryCache } from "@/lib/queryCache";
 import { useParams, useLocation } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -38,7 +39,7 @@ export default function BookAppointment() {
     setShowCalendar(false);
   };
 
-  const clinicQuery = trpc.clinics.getById.useQuery({ id: clinicId });
+  const clinicQuery = trpc.clinics.getById.useQuery({ id: clinicId }, queryCache.publicDetail);
   const createAppointmentMutation = trpc.appointments.create.useMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {

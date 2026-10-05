@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { queryCache } from "@/lib/queryCache";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { MapView } from "@/components/Map";
@@ -44,7 +45,7 @@ export default function Home() {
     data: allClinics = [],
     isLoading,
     isError,
-  } = trpc.clinics.list.useQuery();
+  } = trpc.clinics.list.useQuery(undefined, queryCache.publicList);
 
   const filteredClinics = useMemo(
     () => searchClinicsByName(allClinics, searchQuery),

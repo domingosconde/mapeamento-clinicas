@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Settings, LogOut, Star, MessageSquare, Tag, X, Plus, Save } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { queryCache } from "@/lib/queryCache";
 import { useState } from "react";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ export default function AdminDashboard() {
   const utils = trpc.useUtils();
   const { data: myClinic, isLoading: isClinicLoading } = trpc.clinics.getMine.useQuery(undefined, {
     enabled: isAuthenticated && user?.role === "admin",
+    ...queryCache.privateDetail,
   });
   const clinicId = myClinic?.id ?? 0;
   const [replyTexts, setReplyTexts] = useState<Record<number, string>>({});
@@ -47,10 +49,11 @@ export default function AdminDashboard() {
   });
 
   // Fetch data
-  const { data: allSpecialties = [] } = trpc.specialties.list.useQuery();
+  const { data: allSpecialties = [] } = trpc.specialties.list.useQuery(undefined, queryCache.publicList);
   const clinicComments: any[] = [];
   const { data: clinicRatings = [] } = trpc.ratings.getByClinic.useQuery(
-    { clinicId: 1 }
+    { clinicId: 1 },
+    queryCache.publicList,
   );
   const appointments: any[] = [];
 
