@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings, LogOut, Star, MessageSquare, Tag, X, Plus, Save } from "lucide-react";
+import { LogOut, Star, MessageSquare, Plus, Save, CheckCircle2, EyeOff, Download } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { queryCache } from "@/lib/queryCache";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import PhotoUploader from "@/components/PhotoUploader";
@@ -48,14 +48,37 @@ export default function AdminDashboard() {
     openingHours: "",
   });
 
+  useEffect(() => {
+    if (!myClinic) return;
+    setForm({
+      name: myClinic.name ?? "",
+      description: myClinic.description ?? "",
+      phone: myClinic.phone ?? "",
+      email: myClinic.email ?? "",
+      website: myClinic.website ?? "",
+      address: myClinic.address ?? "",
+      city: myClinic.city ?? "",
+      state: myClinic.state ?? "",
+      zipCode: myClinic.zipCode ?? "",
+      openingHours: myClinic.openingHours ?? "",
+    });
+  }, [myClinic]);
+
   // Fetch data
   const { data: allSpecialties = [] } = trpc.specialties.list.useQuery(undefined, queryCache.publicList);
-  const clinicComments: any[] = [];
-  const { data: clinicRatings = [] } = trpc.ratings.getByClinic.useQuery(
-    { clinicId: 1 },
-    queryCache.publicList,
+  const { data: clinicComments = [], refetch: refetchComments } = trpc.comments.getForModeration.useQuery(
+    { clinicId },
+    { enabled: clinicId > 0, ...queryCache.privateList },
   );
-  const appointments: any[] = [];
+  const { data: clinicRatings = [] } = trpc.ratings.getByClinic.useQuery(
+    { clinicId },
+    { enabled: clinicId > 0, ...queryCache.publicList },
+  );
+  const appointmentsQuery = trpc.appointments.getClinicAppointments.useQuery(
+    { clinicId },
+    { enabled: clinicId > 0, ...queryCache.privateList },
+  );
+  const appointments = appointmentsQuery.data ?? [];
 
   // Mutations
   const updateClinic = trpc.clinics.update.useMutation({
@@ -90,16 +113,52 @@ export default function AdminDashboard() {
     onSuccess: () => {
       toast.success("Resposta enviada com sucesso!");
       setReplyTexts({});
+      refetchComments();
     },
     onError: (e) => toast.error(`Erro: ${e.message}`),
+  });
+
+  const setCommentApproval = trpc.comments.setApproval.useMutation({
+    onSuccess: ({ isApproved }) => {
+      toast.success(isApproved ? "Comentário aprovado." : "Comentário ocultado.");
+      refetchComments();
+      utils.comments.getByClinic.invalidate({ clinicId });
+    },
+    onError: (e) => toast.error(`Erro ao moderar comentário: ${e.message}`),
   });
 
   const updateAppointmentStatus = trpc.appointments.updateStatus.useMutation({
     onSuccess: () => {
       toast.success("Status do agendamento atualizado!");
+      appointmentsQuery.refetch();
     },
     onError: (e) => toast.error(`Erro: ${e.message}`),
   });
+
+  const sendReminders = trpc.appointments.sendReminders.useMutation({
+    onSuccess: ({ sent }) => toast.success(sent ? `${sent} lembrete(s) processado(s).` : "Não há consultas próximas para lembrar."),
+    onError: (e) => toast.error(`Erro ao processar lembretes: ${e.message}`),
+  });
+
+  const downloadAppointmentsReport = () => {
+    const headers = ["Paciente", "Email", "Data", "Início", "Fim", "Estado"];
+    const rows = appointments.map((appointment: any) => [
+      appointment.patientName,
+      appointment.patientEmail,
+      new Date(appointment.appointmentDate).toLocaleDateString("pt-PT"),
+      appointment.startTime,
+      appointment.endTime,
+      appointment.status,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`).join(","))
+      .join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }));
+    link.download = `agendamentos-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
 
   if (!isAuthenticated || user?.role !== "admin") {
     return (
@@ -220,7 +279,22 @@ export default function AdminDashboard() {
                             ))}
                           </div>
                         </div>
-                        <p className="text-slate-700">{c.text}</p>
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-slate-700">{c.text}</p>
+                          <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${c.isApproved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                            {c.isApproved ? "Publicado" : "Pendente"}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1"
+                          onClick={() => setCommentApproval.mutate({ commentId: c.id, isApproved: !c.isApproved })}
+                          disabled={setCommentApproval.isPending}
+                        >
+                          {c.isApproved ? <EyeOff className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                          {c.isApproved ? "Ocultar" : "Aprovar"}
+                        </Button>
                         <div className="space-y-2">
                           <Textarea
                             placeholder="Escreva sua resposta..."
@@ -247,7 +321,17 @@ export default function AdminDashboard() {
 
             {activeTab === "appointments" && (
               <Card className="p-6 space-y-4">
-                <h2 className="text-xl font-semibold text-slate-900">Agendamentos</h2>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-xl font-semibold text-slate-900">Agendamentos</h2>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" className="gap-1" onClick={() => sendReminders.mutate({ clinicId })} disabled={sendReminders.isPending || !clinicId}>
+                      Processar lembretes
+                    </Button>
+                    <Button size="sm" variant="outline" className="gap-1" onClick={downloadAppointmentsReport} disabled={appointments.length === 0}>
+                      <Download className="w-3.5 h-3.5" /> Exportar CSV
+                    </Button>
+                  </div>
+                </div>
                 <div className="space-y-3">
                   {appointments.length === 0 ? (
                     <p className="text-slate-500 text-center py-8">Nenhum agendamento</p>
@@ -257,7 +341,7 @@ export default function AdminDashboard() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-medium text-slate-900">{a.patientName}</p>
-                            <p className="text-sm text-slate-600">{new Date(a.appointmentDate).toLocaleDateString("pt-BR")} às {a.appointmentTime}</p>
+                            <p className="text-sm text-slate-600">{new Date(a.appointmentDate).toLocaleDateString("pt-PT")} às {a.startTime} — {a.endTime}</p>
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                             a.status === "confirmed" ? "bg-green-100 text-green-700" :

@@ -250,6 +250,36 @@ export async function getClinicCommentsWithUser(clinicId: number) {
     .where(and(eq(comments.clinicId, clinicId), eq(comments.isApproved, true)));
 }
 
+// Get all clinic comments for the admin moderation queue.
+export async function getClinicCommentsForModeration(clinicId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: comments.id,
+      clinicId: comments.clinicId,
+      userId: comments.userId,
+      text: comments.text,
+      isApproved: comments.isApproved,
+      createdAt: comments.createdAt,
+      updatedAt: comments.updatedAt,
+      userName: users.name,
+    })
+    .from(comments)
+    .leftJoin(users, eq(comments.userId, users.id))
+    .where(eq(comments.clinicId, clinicId))
+    .orderBy(desc(comments.createdAt));
+}
+
+export async function updateCommentApproval(commentId: number, isApproved: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(comments)
+    .set({ isApproved, updatedAt: new Date() })
+    .where(eq(comments.id, commentId));
+}
+
 // Get clinic responses for a comment
 export async function getClinicResponsesForComment(commentId: number) {
   const db = await getDb();
@@ -445,4 +475,33 @@ export async function getUpcomingAppointments(clinicId: number, days: number = 7
       )
     )
     .orderBy(appointments.appointmentDate, appointments.startTime);
+}
+
+export async function getPendingAppointmentReminders(clinicId: number, days: number = 1) {
+  const db = await getDb();
+  if (!db) return [];
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + days);
+  return db
+    .select()
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.clinicId, clinicId),
+        eq(appointments.reminderSent, false),
+        sql`${appointments.appointmentDate} >= CURDATE()`,
+        sql`${appointments.appointmentDate} <= ${futureDate.toISOString().split("T")[0]}`,
+        ne(appointments.status, "cancelled"),
+      ),
+    )
+    .orderBy(appointments.appointmentDate, appointments.startTime);
+}
+
+export async function markAppointmentReminderSent(appointmentId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(appointments)
+    .set({ reminderSent: true, updatedAt: new Date() })
+    .where(eq(appointments.id, appointmentId));
 }

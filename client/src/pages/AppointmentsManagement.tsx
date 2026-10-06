@@ -11,10 +11,15 @@ import { Loader2, Calendar, Clock, User, Mail, Phone } from "lucide-react";
 export default function AppointmentsManagement() {
   const { user } = useAuth();
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const clinicQuery = trpc.clinics.getMine.useQuery(undefined, {
+    enabled: !!user?.id,
+    ...queryCache.privateDetail,
+  });
+  const clinicId = clinicQuery.data?.id ?? 0;
 
   const appointmentsQuery = trpc.appointments.getClinicAppointments.useQuery(
-    { clinicId: user?.id || 0 },
-    { enabled: !!user?.id, ...queryCache.privateList }
+    { clinicId },
+    { enabled: clinicId > 0, ...queryCache.privateList }
   );
 
   const updateStatusMutation = trpc.appointments.updateStatus.useMutation({

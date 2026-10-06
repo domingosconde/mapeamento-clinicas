@@ -10,6 +10,7 @@ import {
   Mail,
   MapPin,
   Navigation,
+  LocateFixed,
   Phone,
   Search,
   SearchX,
@@ -24,6 +25,7 @@ import { useLocation } from "wouter";
 import { MapView } from "@/components/Map";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { searchClinicsByName } from "@/lib/clinicSearch";
+import { distanceInKm } from "@/lib/geo";
 
 const escapeHtml = (value: unknown) =>
   String(value ?? "")
@@ -37,6 +39,8 @@ export default function Home() {
   const { user, isAuthenticated } = useAuth({ redirectOnUnauthenticated: false });
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const mapRef = useRef<google.maps.Map | null>(null);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
@@ -51,6 +55,35 @@ export default function Home() {
     () => searchClinicsByName(allClinics, searchQuery),
     [allClinics, searchQuery],
   );
+
+  const sortedClinics = useMemo(() => {
+    if (!userLocation) return filteredClinics.map((clinic: any) => ({ clinic, distanceKm: null }));
+    return filteredClinics
+      .map((clinic: any) => {
+        const latitude = Number(clinic.latitude);
+        const longitude = Number(clinic.longitude);
+        return Number.isFinite(latitude) && Number.isFinite(longitude)
+          ? { clinic, distanceKm: distanceInKm(userLocation, { latitude, longitude }) }
+          : { clinic, distanceKm: null };
+      })
+      .sort((a, b) => (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY));
+  }, [filteredClinics, userLocation]);
+
+  const requestUserLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus("error");
+      return;
+    }
+    setLocationStatus("loading");
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setUserLocation({ latitude: coords.latitude, longitude: coords.longitude });
+        setLocationStatus("ready");
+      },
+      () => setLocationStatus("error"),
+      { enableHighAccuracy: false, maximumAge: 300_000, timeout: 10_000 },
+    );
+  };
 
   const verifiedCount = useMemo(
     () => allClinics.filter((clinic: any) => clinic.isVerified).length,
@@ -284,11 +317,21 @@ export default function Home() {
                 Use a pesquisa por nome ou navegue pelo mapa. A lista permanece disponível mesmo quando o mapa está temporariamente indisponível.
               </p>
             </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-secondary-foreground">
-              <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-              {isLoading ? "A carregar" : `${filteredClinics.length} resultado${filteredClinics.length === 1 ? "" : "s"}`}
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={requestUserLocation} disabled={locationStatus === "loading"}>
+                <LocateFixed className="mr-2 size-4 text-primary" aria-hidden="true" />
+                {locationStatus === "loading" ? "A localizar…" : userLocation ? "Ordenado por proximidade" : "Ordenar por proximidade"}
+              </Button>
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-secondary-foreground">
+                <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
+                {isLoading ? "A carregar" : `${sortedClinics.length} resultado${sortedClinics.length === 1 ? "" : "s"}`}
+              </div>
             </div>
           </div>
+          <p className="mb-5 text-sm text-muted-foreground" role="status" aria-live="polite">
+            {locationStatus === "error" && "Não foi possível obter a sua localização. Pode continuar a pesquisar normalmente."}
+            {locationStatus === "ready" && "A lista está ordenada pela distância estimada até si."}
+          </p>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)] lg:items-start">
             <div className="surface-card relative min-h-[420px] overflow-hidden rounded-[2rem] p-2 sm:min-h-[620px] sm:p-3">
@@ -339,7 +382,7 @@ export default function Home() {
                 </Card>
               )}
 
-              {!isLoading && filteredClinics.map((clinic: any) => (
+              {!isLoading && sortedClinics.map(({ clinic, distanceKm }: { clinic: any; distanceKm: number | null }) => (
                 <Card key={clinic.id} className="group rounded-2xl border-white/80 bg-white/85 p-2 shadow-[0_10px_32px_rgba(29,80,82,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(29,80,82,0.13)]">
                   <button
                     type="button"
@@ -360,6 +403,7 @@ export default function Home() {
                         <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                           <MapPin className="size-4 shrink-0 text-primary" aria-hidden="true" />
                           <span className="truncate">{clinic.city || "Localização não informada"}</span>
+                          {distanceKm !== null && <span className="shrink-0 text-xs font-semibold text-primary">{distanceKm < 1 ? "menos de 1 km" : `${distanceKm.toFixed(1)} km`}</span>}
                         </div>
                       </div>
                       <ArrowRight className="mt-1 size-4 shrink-0 text-primary transition-transform group-hover:translate-x-1" aria-hidden="true" />

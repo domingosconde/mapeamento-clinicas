@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { MapPin, Phone, Mail, Globe, Clock, Star, MessageSquare, ArrowLeft, Building2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { queryCache } from "@/lib/queryCache";
+import React from "react";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { getLoginUrl } from "@/const";

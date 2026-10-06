@@ -11,6 +11,8 @@ import {
   getAllSpecialties,
   getClinicRatings,
   getClinicCommentsWithUser,
+  getClinicCommentsForModeration,
+  updateCommentApproval,
   getUserRating,
   getDb,
   getClinicSpecialties,
@@ -30,11 +32,15 @@ import {
   createAppointmentSlot,
   getClinicAppointmentSlots,
   checkAppointmentConflict,
+  getPendingAppointmentReminders,
+  markAppointmentReminderSent,
 } from "./db";
 import { ratings, comments, type InsertRating, type InsertComment } from "../drizzle/schema";
 import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
 import { and, eq } from "drizzle-orm";
+import { moderateCommentText } from "./moderation";
+import { queueClinicNotification } from "./notifications";
 
 export const appRouter = router({
   system: systemRouter,
@@ -201,18 +207,50 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
+        const moderation = moderateCommentText(input.text);
         const newComment: InsertComment = {
           clinicId: input.clinicId,
           userId: ctx.user.id,
           text: input.text,
-          isApproved: true,
+          isApproved: moderation.approved,
           createdAt: new Date(),
           updatedAt: new Date(),
         };
 
         await db.insert(comments).values(newComment);
+        queueClinicNotification({
+          title: "Novo comentário recebido",
+          content: `A clínica ${input.clinicId} recebeu um comentário${moderation.approved ? " publicado" : " pendente de moderação"}.`,
+        });
         const createdComments = await getClinicCommentsWithUser(input.clinicId);
         return createdComments[createdComments.length - 1] || { success: true };
+      }),
+
+    getForModeration: protectedProcedure
+      .input(z.object({ clinicId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic || clinic.id !== input.clinicId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        return getClinicCommentsForModeration(input.clinicId);
+      }),
+
+    setApproval: protectedProcedure
+      .input(z.object({ commentId: z.number(), isApproved: z.boolean() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const [comment] = await db.select().from(comments).where(eq(comments.id, input.commentId)).limit(1);
+        if (!comment) throw new TRPCError({ code: "NOT_FOUND" });
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic || clinic.id !== comment.clinicId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        await updateCommentApproval(input.commentId, input.isApproved);
+        return { success: true, isApproved: input.isApproved };
       }),
 
     reply: protectedProcedure
@@ -277,7 +315,7 @@ export const appRouter = router({
           });
         }
         
-        return createAppointment({
+        const appointment = await createAppointment({
           clinicId: input.clinicId,
           userId: ctx.user.id,
           appointmentDate: new Date(input.appointmentDate),
@@ -290,12 +328,24 @@ export const appRouter = router({
           notes: input.notes,
           status: "pending",
         });
+        queueClinicNotification({
+          title: "Novo pedido de agendamento",
+          content: `Foi criado um pedido de agendamento para a clínica ${input.clinicId} em ${input.appointmentDate} às ${input.startTime}.`,
+        });
+        return appointment;
       }),
 
     // Get clinic appointments
-    getClinicAppointments: publicProcedure
+    getClinicAppointments: protectedProcedure
       .input(z.object({ clinicId: z.number() }))
-      .query(async ({ input }) => getClinicAppointments(input.clinicId)),
+      .query(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic || clinic.id !== input.clinicId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        return getClinicAppointments(input.clinicId);
+      }),
 
     // Get user appointments
     getUserAppointments: protectedProcedure
@@ -346,6 +396,10 @@ export const appRouter = router({
         }
         
         await updateAppointmentStatus(input.appointmentId, input.status);
+        queueClinicNotification({
+          title: "Estado de agendamento atualizado",
+          content: `O agendamento ${input.appointmentId} passou para o estado ${input.status}.`,
+        });
         return { success: true };
       }),
 
@@ -384,6 +438,25 @@ export const appRouter = router({
     getClinicSlots: publicProcedure
       .input(z.object({ clinicId: z.number() }))
       .query(async ({ input }) => getClinicAppointmentSlots(input.clinicId)),
+
+    sendReminders: protectedProcedure
+      .input(z.object({ clinicId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.user) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic || clinic.id !== input.clinicId) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const reminders = await getPendingAppointmentReminders(input.clinicId);
+        for (const appointment of reminders) {
+          queueClinicNotification({
+            title: "Lembrete de consulta próxima",
+            content: `A consulta ${appointment.id} da clínica ${input.clinicId} está marcada para ${appointment.appointmentDate.toISOString().split("T")[0]} às ${appointment.startTime}.`,
+          });
+          await markAppointmentReminderSent(appointment.id);
+        }
+        return { sent: reminders.length };
+      }),
   }),
 });
 

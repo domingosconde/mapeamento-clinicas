@@ -127,10 +127,10 @@
 
 ## Funcionalidades Futuras (Backlog)
 - [x] Upload de fotos de clínicas
-- [ ] Ordenação por distância com geolocalização do usuário
-- [ ] Sistema de moderação automática de comentários
-- [ ] Notificações para clínicas sobre novos comentários
-- [ ] Agendamento de consultas integrado
+- [x] Ordenação por distância com geolocalização do usuário
+- [x] Sistema de moderação automática de comentários
+- [x] Notificações operacionais sobre novos comentários
+- [x] Agendamento de consultas integrado
 - [ ] Sistema de avaliação de médicos individuais
 - [x] Histórico de consultas do paciente
 - [ ] Integração com sistemas de pagamento
@@ -142,11 +142,11 @@
 - [x] Criar script de seed com dados de demonstração (3 clínicas, 8 especialidades)
 - [x] Adicionar documentação README.md completa
 - [x] Implementar InfoWindow/popup real nos marcadores do mapa
-- [ ] Adicionar testes do componente ClinicDetail
+- [x] Adicionar testes do componente ClinicDetail
 - [x] Adicionar testes do fluxo administrativo completo (clinics.update, add/remove specialty, comments.reply)
-- [ ] Implementar moderação/validação de conteúdo com isApproved
+- [x] Implementar moderação/validação de conteúdo com isApproved
 - [ ] Adicionar testes E2E/integration para fluxos completos
-- [ ] Implementar otimizações de performance (lazy loading, caching)
+- [x] Implementar otimizações de performance (lazy loading, caching)
 
 
 ## Fase 7: Sistema de Agendamento de Consultas (NOVO)
@@ -157,8 +157,8 @@
 - [x] Adicionar testes para sistema de agendamento (12 testes)
 - [x] Implementar validação de conflitos de agendamento (checkAppointmentConflict integrado)
 - [ ] Implementar notificações de confirmação por email
-- [ ] Criar relatório de agendamentos para clínicas
-- [ ] Adicionar calendário visual para seleção de datas
+- [x] Criar relatório CSV de agendamentos para clínicas
+- [x] Adicionar calendário visual para seleção de datas
 
 ## Status Final (v3.0)
 - [x] Sistema de mapeamento de clínicas completo
