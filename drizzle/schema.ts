@@ -192,6 +192,8 @@ export const appointments = mysqlTable("appointments", {
   patientPhone: varchar("patientPhone", { length: 20 }),
   notes: text("notes"),
   status: mysqlEnum("status", ["pending", "confirmed", "completed", "cancelled", "no-show"]).default("pending"),
+  paymentStatus: mysqlEnum("paymentStatus", ["not_required", "pending", "paid", "failed", "refunded"]).default("not_required").notNull(),
+  paymentSessionId: varchar("paymentSessionId", { length: 255 }),
   reminderSent: boolean("reminderSent").default(false),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

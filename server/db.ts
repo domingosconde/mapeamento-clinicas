@@ -375,6 +375,19 @@ export async function updateAppointmentStatus(appointmentId: number, status: str
     .where(eq(appointments.id, appointmentId));
 }
 
+export async function updateAppointmentPayment(
+  appointmentId: number,
+  paymentStatus: "not_required" | "pending" | "paid" | "failed" | "refunded",
+  paymentSessionId?: string | null,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(appointments)
+    .set({ paymentStatus, paymentSessionId: paymentSessionId ?? null, updatedAt: new Date() })
+    .where(eq(appointments.id, appointmentId));
+}
+
 export async function getAvailableSlots(clinicId: number, dayOfWeek: number) {
   const db = await getDb();
   if (!db) return [];

@@ -29,3 +29,16 @@ SMTP_FROM=Clinicas Proximas <noreply@example.com>
 ```
 
 Sem essas variáveis, o sistema continua a funcionar e mantém as notificações operacionais internas, mas não tenta enviar email.
+
+## Pagamentos de agendamentos
+
+O projeto inclui checkout hospedado pelo Stripe. Os cartões não passam pelo servidor da aplicação: o paciente é redirecionado para a página segura do Stripe e o estado só é marcado como pago após o webhook assinado.
+
+```env
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_CURRENCY=usd
+APPOINTMENT_FEE_CENTS=2500
+```
+
+Configure o endpoint `/api/payments/stripe/webhook` no Stripe e subscreva `checkout.session.completed`, `checkout.session.async_payment_failed` e `checkout.session.expired`. Com `APPOINTMENT_FEE_CENTS=0` ou sem as chaves, o sistema mantém o agendamento sem pagamento obrigatório.

@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Clínicas Próximas",
+    "slug": "clinicas-proximas",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "clinicasproximas",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "plugins": ["expo-router"],
+    "ios": { "supportsTablet": true },
+    "android": { "adaptiveIcon": { "backgroundColor": "#0d9488" } },
+    "extra": { "apiBaseUrl": "https://clinicamap-eyatarvw.manus.space" }
+  }
+}

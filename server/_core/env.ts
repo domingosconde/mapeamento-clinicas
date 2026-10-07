@@ -13,4 +13,8 @@ export const ENV = {
   smtpPassword: process.env.SMTP_PASSWORD ?? "",
   smtpFrom: process.env.SMTP_FROM ?? "",
   publicApiKey: process.env.PUBLIC_API_KEY ?? "",
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  stripeCurrency: process.env.STRIPE_CURRENCY ?? "usd",
+  appointmentFeeCents: Number(process.env.APPOINTMENT_FEE_CENTS ?? 0),
 };

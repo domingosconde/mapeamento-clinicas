@@ -43,6 +43,8 @@ import { moderateCommentText } from "./moderation";
 import { queueClinicNotification } from "./notifications";
 import { createProfessional, createProfessionalRating, getClinicProfessionals, getProfessionalById, getUserProfessionalRating } from "./professionals";
 import { queueAppointmentEmail } from "./email";
+import { createAppointmentCheckoutSession, isPaymentsConfigured } from "./payments";
+import { ENV } from "./_core/env";
 
 export const appRouter = router({
   system: systemRouter,
@@ -390,6 +392,32 @@ export const appRouter = router({
           status: "pendente",
         });
         return appointment;
+      }),
+
+    getPaymentConfig: publicProcedure.query(() => ({
+      enabled: isPaymentsConfigured(),
+      amountCents: isPaymentsConfigured() ? Number(process.env.APPOINTMENT_FEE_CENTS ?? 0) : 0,
+      currency: ENV.stripeCurrency,
+    })),
+
+    createCheckout: protectedProcedure
+      .input(z.object({ appointmentId: z.number(), origin: z.string().url() }))
+      .mutation(async ({ input, ctx }) => {
+        if (!isPaymentsConfigured()) {
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Pagamentos online não estão configurados." });
+        }
+        try {
+          return await createAppointmentCheckoutSession({
+            appointmentId: input.appointmentId,
+            userId: ctx.user.id,
+            origin: input.origin,
+          });
+        } catch (error) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: error instanceof Error ? error.message : "Não foi possível iniciar o pagamento.",
+          });
+        }
       }),
 
     // Get clinic appointments

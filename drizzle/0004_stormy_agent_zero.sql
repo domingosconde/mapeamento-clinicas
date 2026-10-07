@@ -1,0 +1,2 @@
+ALTER TABLE `appointments` ADD `paymentStatus` enum('not_required','pending','paid','failed','refunded') DEFAULT 'not_required' NOT NULL;--> statement-breakpoint
+ALTER TABLE `appointments` ADD `paymentSessionId` varchar(255);

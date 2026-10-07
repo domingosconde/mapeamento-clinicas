@@ -133,9 +133,9 @@
 - [x] Agendamento de consultas integrado
 - [x] Sistema de avaliação de médicos individuais
 - [x] Histórico de consultas do paciente
-- [ ] Integração com sistemas de pagamento — pendente de escolha do provedor, credenciais e fluxo de cobrança
+- [x] Integração com sistemas de pagamento — checkout Stripe hospedado opcional, webhook assinado e estado persistido; requer chaves Stripe para ativação
 - [x] API pública para terceiros
-- [ ] Mobile app nativa — pendente de decisão de plataforma e escopo separado da aplicação web responsiva
+- [x] Mobile app nativa — cliente Expo separado com exploração e detalhe de clínicas via API pública
 
 ## Melhorias de Qualidade (v2.1)
 - [x] Corrigir erro TypeScript em server/_core/storageProxy.ts

@@ -21,6 +21,7 @@ export default function BookAppointment() {
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [createdAppointmentId, setCreatedAppointmentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     appointmentDate: "",
     startTime: "",
@@ -40,7 +41,14 @@ export default function BookAppointment() {
   };
 
   const clinicQuery = trpc.clinics.getById.useQuery({ id: clinicId }, queryCache.publicDetail);
+  const paymentConfig = trpc.appointments.getPaymentConfig.useQuery(undefined, { staleTime: 5 * 60 * 1000 });
   const createAppointmentMutation = trpc.appointments.create.useMutation();
+  const createCheckoutMutation = trpc.appointments.createCheckout.useMutation({
+    onSuccess: ({ url }) => {
+      if (url) window.location.assign(url);
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +68,7 @@ export default function BookAppointment() {
     const endTimeStr = endTime.toTimeString().slice(0, 5);
 
     try {
-      await createAppointmentMutation.mutateAsync({
+      const appointment = await createAppointmentMutation.mutateAsync({
         clinicId,
         appointmentDate: formData.appointmentDate,
         startTime: formData.startTime,
@@ -71,6 +79,7 @@ export default function BookAppointment() {
         notes: formData.notes,
       });
 
+      setCreatedAppointmentId(appointment.id);
       toast.success("Agendamento realizado com sucesso!");
       setFormData({
         appointmentDate: "",
@@ -282,6 +291,23 @@ export default function BookAppointment() {
               </Button>
             </div>
           </form>
+
+          {createdAppointmentId && paymentConfig.data?.enabled && (
+            <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="font-semibold text-emerald-900">Pedido criado. Pagamento opcional</p>
+              <p className="mt-1 text-sm text-emerald-800">
+                Conclua o pagamento seguro para reservar a taxa do atendimento ({new Intl.NumberFormat("pt-PT", { style: "currency", currency: paymentConfig.data.currency.toUpperCase() }).format((paymentConfig.data.amountCents ?? 0) / 100)}).
+              </p>
+              <Button
+                type="button"
+                className="mt-3"
+                onClick={() => createCheckoutMutation.mutate({ appointmentId: createdAppointmentId, origin: window.location.origin })}
+                disabled={createCheckoutMutation.isPending}
+              >
+                {createCheckoutMutation.isPending ? "A abrir pagamento..." : "Pagar com Stripe"}
+              </Button>
+            </div>
+          )}
 
           <p className="text-sm text-gray-500 mt-6">
             * Campos obrigatórios. Você receberá uma confirmação por email após o agendamento.
