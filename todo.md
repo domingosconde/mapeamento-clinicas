@@ -131,11 +131,11 @@
 - [x] Sistema de moderação automática de comentários
 - [x] Notificações operacionais sobre novos comentários
 - [x] Agendamento de consultas integrado
-- [ ] Sistema de avaliação de médicos individuais
+- [x] Sistema de avaliação de médicos individuais
 - [x] Histórico de consultas do paciente
-- [ ] Integração com sistemas de pagamento
-- [ ] API pública para terceiros
-- [ ] Mobile app nativa
+- [ ] Integração com sistemas de pagamento — pendente de escolha do provedor, credenciais e fluxo de cobrança
+- [x] API pública para terceiros
+- [ ] Mobile app nativa — pendente de decisão de plataforma e escopo separado da aplicação web responsiva
 
 ## Melhorias de Qualidade (v2.1)
 - [x] Corrigir erro TypeScript em server/_core/storageProxy.ts
@@ -145,7 +145,7 @@
 - [x] Adicionar testes do componente ClinicDetail
 - [x] Adicionar testes do fluxo administrativo completo (clinics.update, add/remove specialty, comments.reply)
 - [x] Implementar moderação/validação de conteúdo com isApproved
-- [ ] Adicionar testes E2E/integration para fluxos completos
+- [x] Adicionar testes de integração para fluxos públicos e limites de acesso; E2E de browser completo permanece como melhoria futura
 - [x] Implementar otimizações de performance (lazy loading, caching)
 
 
@@ -156,7 +156,7 @@
 - [x] Adicionar gerenciamento de agendamentos no dashboard admin
 - [x] Adicionar testes para sistema de agendamento (12 testes)
 - [x] Implementar validação de conflitos de agendamento (checkAppointmentConflict integrado)
-- [ ] Implementar notificações de confirmação por email
+- [x] Implementar notificações de confirmação por email via SMTP configurável
 - [x] Criar relatório CSV de agendamentos para clínicas
 - [x] Adicionar calendário visual para seleção de datas
 

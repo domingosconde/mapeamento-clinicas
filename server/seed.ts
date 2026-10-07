@@ -7,6 +7,7 @@ import {
   clinicSpecialties,
   ratings,
   comments,
+  medicalProfessionals,
 } from "../drizzle/schema";
 
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -178,6 +179,19 @@ async function seed() {
       .onDuplicateKeyUpdate({ set: { text: "Updated comment" } });
 
     console.log(`✓ Created sample comments`);
+
+    const professionalsData = [
+      { clinicId: 1, name: "Dra. Ana Manuel", specialty: "Cardiologia", bio: "Atendimento centrado na pessoa e acompanhamento preventivo.", averageRating: 4.8, totalRatings: 6 },
+      { clinicId: 1, name: "Dr. Paulo José", specialty: "Pediatria", bio: "Experiência em cuidados pediátricos e orientação familiar.", averageRating: 4.6, totalRatings: 4 },
+      { clinicId: 2, name: "Dra. Marta dos Santos", specialty: "Oftalmologia", bio: "Consultas de rotina, prevenção e acompanhamento visual.", averageRating: 4.9, totalRatings: 8 },
+    ];
+
+    await db
+      .insert(medicalProfessionals)
+      .values(professionalsData)
+      .onDuplicateKeyUpdate({ set: { name: professionalsData[0].name } });
+
+    console.log(`✓ Created sample medical professionals`);
 
     console.log("✅ Seed completed successfully!");
   } catch (error) {

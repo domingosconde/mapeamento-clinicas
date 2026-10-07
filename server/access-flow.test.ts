@@ -29,16 +29,20 @@ describe("visitor -> patient -> admin access flow", () => {
   it("allows a visitor to resolve auth state without exposing private data", async () => {
     const visitor = appRouter.createCaller(contextFor(null));
     await expect(visitor.auth.me()).resolves.toBeNull();
+    await expect(visitor.clinics.getById({ id: 1 })).resolves.toBeDefined();
     await expect(visitor.appointments.getUserAppointments()).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 
   it("keeps clinic appointment management outside the patient role", async () => {
     const caller = appRouter.createCaller(contextFor(patient));
+    await expect(caller.appointments.getUserAppointments()).resolves.toBeDefined();
     await expect(caller.appointments.getClinicAppointments({ clinicId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.comments.getForModeration({ clinicId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("recognizes the administrator role before clinic management checks", async () => {
     const caller = appRouter.createCaller(contextFor(admin));
     await expect(caller.appointments.getClinicAppointments({ clinicId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.clinics.uploadPhoto({ clinicId: 1, fileName: "test.png", contentType: "image/png", base64: "aGVsbG8=" })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

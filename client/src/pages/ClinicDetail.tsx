@@ -37,6 +37,10 @@ export default function ClinicDetail() {
     { clinicId },
     { enabled: clinicId > 0, ...queryCache.publicList }
   );
+  const { data: professionals = [] } = trpc.professionals.getByClinic.useQuery(
+    { clinicId },
+    { enabled: clinicId > 0, ...queryCache.publicList }
+  );
   const { data: userExistingRating } = trpc.ratings.getUserRating.useQuery(
     { clinicId, userId: user?.id || 0 },
     { enabled: clinicId > 0 && isAuthenticated && !!user?.id, ...queryCache.privateDetail }
@@ -60,6 +64,14 @@ export default function ClinicDetail() {
       setComment("");
     },
     onError: () => toast.error("Erro ao enviar comentário"),
+  });
+
+  const rateProfessional = trpc.professionals.rate.useMutation({
+    onSuccess: () => {
+      toast.success("Avaliação do profissional enviada com sucesso!");
+      utils.professionals.getByClinic.invalidate({ clinicId });
+    },
+    onError: (error) => toast.error(error.message),
   });
 
   const handleSubmitRating = async () => {
@@ -210,6 +222,54 @@ export default function ClinicDetail() {
                 Agendar Consulta
               </Button>
             </Card>
+
+            {professionals.length > 0 && (
+              <Card className="p-6 space-y-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">Profissionais</h2>
+                  <p className="mt-1 text-sm text-slate-500">Conheça a equipa e avalie a sua experiência individual.</p>
+                </div>
+                <div className="space-y-3">
+                  {professionals.map((professional: any) => (
+                    <div key={professional.id} className="rounded-xl border border-slate-100 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-slate-900">{professional.name}</p>
+                          <p className="text-sm text-slate-500">{professional.specialty}</p>
+                        </div>
+                        <span className="text-sm font-semibold text-slate-700">
+                          {professional.averageRating && professional.averageRating > 0 ? `${Number(professional.averageRating).toFixed(1)}★` : "Novo"}
+                        </span>
+                      </div>
+                      {professional.bio && <p className="mt-2 text-sm leading-6 text-slate-600">{professional.bio}</p>}
+                      {isAuthenticated ? (
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                          <span className="text-xs text-slate-500">Avaliar profissional</span>
+                          <div className="flex gap-1" aria-label={`Avaliar ${professional.name}`}>
+                            {[1, 2, 3, 4, 5].map((score) => (
+                              <button
+                                key={score}
+                                type="button"
+                                className="rounded p-0.5 text-slate-300 transition hover:text-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                onClick={() => rateProfessional.mutate({ professionalId: professional.id, score })}
+                                disabled={rateProfessional.isPending}
+                                aria-label={`${score} estrelas`}
+                              >
+                                <Star className="h-4 w-4 fill-current" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <Button asChild variant="link" size="sm" className="mt-2 h-auto px-0">
+                          <a href={getLoginUrl()}>Entrar para avaliar</a>
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* Comments Section */}
             <Card className="p-6 space-y-6">

@@ -1,8 +1,8 @@
 import { eq, like, and, avg, count, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties, clinicResponses, appointments, appointmentSlots } from "../drizzle/schema";
+import { InsertUser, users, clinics, specialties, ratings, comments, clinicSpecialties, clinicResponses, appointments, appointmentSlots, medicalProfessionals, professionalRatings } from "../drizzle/schema";
 import { ENV } from './_core/env';
-import type { InsertClinic, InsertRating, InsertComment, InsertClinicResponse, InsertAppointment, InsertAppointmentSlot } from "../drizzle/schema";
+import type { InsertClinic, InsertRating, InsertComment, InsertClinicResponse, InsertAppointment, InsertAppointmentSlot, InsertMedicalProfessional, InsertProfessionalRating } from "../drizzle/schema";
 import { desc, asc } from "drizzle-orm";
 
 let _db: ReturnType<typeof drizzle> | null = null;

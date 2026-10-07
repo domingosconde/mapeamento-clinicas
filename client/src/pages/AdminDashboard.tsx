@@ -22,7 +22,7 @@ const fileToBase64 = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-type Tab = "info" | "specialties" | "comments" | "appointments";
+type Tab = "info" | "specialties" | "professionals" | "comments" | "appointments";
 
 export default function AdminDashboard() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -34,6 +34,7 @@ export default function AdminDashboard() {
   });
   const clinicId = myClinic?.id ?? 0;
   const [replyTexts, setReplyTexts] = useState<Record<number, string>>({});
+  const [professionalForm, setProfessionalForm] = useState({ name: "", specialty: "", bio: "", licenseNumber: "" });
 
   const [form, setForm] = useState({
     name: "",
@@ -66,6 +67,10 @@ export default function AdminDashboard() {
 
   // Fetch data
   const { data: allSpecialties = [] } = trpc.specialties.list.useQuery(undefined, queryCache.publicList);
+  const { data: professionals = [] } = trpc.professionals.getByClinic.useQuery(
+    { clinicId },
+    { enabled: clinicId > 0, ...queryCache.privateList },
+  );
   const { data: clinicComments = [], refetch: refetchComments } = trpc.comments.getForModeration.useQuery(
     { clinicId },
     { enabled: clinicId > 0, ...queryCache.privateList },
@@ -86,6 +91,15 @@ export default function AdminDashboard() {
       toast.success("Informações atualizadas com sucesso!");
     },
     onError: (e) => toast.error(`Erro: ${e.message}`),
+  });
+
+  const createProfessional = trpc.professionals.create.useMutation({
+    onSuccess: () => {
+      toast.success("Profissional adicionado com sucesso!");
+      setProfessionalForm({ name: "", specialty: "", bio: "", licenseNumber: "" });
+      utils.professionals.getByClinic.invalidate({ clinicId });
+    },
+    onError: (e) => toast.error(`Erro ao adicionar profissional: ${e.message}`),
   });
 
   const uploadPhoto = trpc.clinics.uploadPhoto.useMutation({
@@ -195,7 +209,7 @@ export default function AdminDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs */}
         <div className="flex gap-2 mb-8 border-b border-slate-200">
-          {(["info", "specialties", "comments", "appointments"] as Tab[]).map((tab) => (
+          {(["info", "specialties", "professionals", "comments", "appointments"] as Tab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -207,6 +221,7 @@ export default function AdminDashboard() {
             >
               {tab === "info" && "Informações"}
               {tab === "specialties" && "Especialidades"}
+              {tab === "professionals" && "Profissionais"}
               {tab === "comments" && "Comentários"}
               {tab === "appointments" && "Agendamentos"}
             </button>
@@ -253,6 +268,39 @@ export default function AdminDashboard() {
                         <Plus className="w-3.5 h-3.5" />
                         Adicionar
                       </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {activeTab === "professionals" && (
+              <Card className="space-y-5 p-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">Profissionais de saúde</h2>
+                  <p className="mt-1 text-sm text-slate-600">Adicione os profissionais que os pacientes podem conhecer e avaliar.</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input placeholder="Nome completo" value={professionalForm.name} onChange={(e) => setProfessionalForm({ ...professionalForm, name: e.target.value })} />
+                  <Input placeholder="Especialidade" value={professionalForm.specialty} onChange={(e) => setProfessionalForm({ ...professionalForm, specialty: e.target.value })} />
+                  <Input placeholder="Número de licença (opcional)" value={professionalForm.licenseNumber} onChange={(e) => setProfessionalForm({ ...professionalForm, licenseNumber: e.target.value })} />
+                  <Textarea placeholder="Biografia curta (opcional)" value={professionalForm.bio} onChange={(e) => setProfessionalForm({ ...professionalForm, bio: e.target.value })} className="sm:col-span-2" />
+                </div>
+                <Button
+                  className="gap-2"
+                  onClick={() => createProfessional.mutate({ clinicId, ...professionalForm })}
+                  disabled={createProfessional.isPending || !clinicId || professionalForm.name.trim().length < 2 || professionalForm.specialty.trim().length < 2}
+                >
+                  <Plus className="h-4 w-4" /> Adicionar profissional
+                </Button>
+                <div className="space-y-2 border-t border-slate-100 pt-4">
+                  {professionals.length === 0 ? <p className="text-sm text-slate-500">Ainda não existem profissionais registados.</p> : professionals.map((professional: any) => (
+                    <div key={professional.id} className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+                      <div>
+                        <p className="font-medium text-slate-900">{professional.name}</p>
+                        <p className="text-sm text-slate-500">{professional.specialty}</p>
+                      </div>
+                      <span className="text-sm font-semibold text-slate-600">{professional.totalRatings ?? 0} avaliações</span>
                     </div>
                   ))}
                 </div>

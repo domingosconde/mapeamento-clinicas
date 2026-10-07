@@ -55,6 +55,25 @@ export const clinics = mysqlTable("clinics", {
 export type Clinic = typeof clinics.$inferSelect;
 export type InsertClinic = typeof clinics.$inferInsert;
 
+/** Medical professionals working at a clinic. */
+export const medicalProfessionals = mysqlTable("medicalProfessionals", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicId: int("clinicId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  specialty: varchar("specialty", { length: 255 }).notNull(),
+  licenseNumber: varchar("licenseNumber", { length: 100 }),
+  bio: text("bio"),
+  photoUrl: varchar("photoUrl", { length: 500 }),
+  averageRating: float("averageRating").default(0),
+  totalRatings: int("totalRatings").default(0),
+  isActive: boolean("isActive").default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type MedicalProfessional = typeof medicalProfessionals.$inferSelect;
+export type InsertMedicalProfessional = typeof medicalProfessionals.$inferInsert;
+
 /**
  * Specialties table - stores medical specialties
  */
@@ -95,6 +114,18 @@ export const ratings = mysqlTable("ratings", {
 
 export type Rating = typeof ratings.$inferSelect;
 export type InsertRating = typeof ratings.$inferInsert;
+
+export const professionalRatings = mysqlTable("professionalRatings", {
+  id: int("id").autoincrement().primaryKey(),
+  professionalId: int("professionalId").notNull(),
+  userId: int("userId").notNull(),
+  score: int("score").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ProfessionalRating = typeof professionalRatings.$inferSelect;
+export type InsertProfessionalRating = typeof professionalRatings.$inferInsert;
 
 /**
  * Comments table - stores user comments/reviews for clinics
@@ -181,8 +212,17 @@ export const clinicsRelations = relations(clinics, ({ many, one }) => (
       fields: [clinics.adminUserId],
       references: [users.id],
     }),
+    professionals: many(medicalProfessionals),
   }
 ));
+
+export const medicalProfessionalsRelations = relations(medicalProfessionals, ({ one, many }) => ({
+  clinic: one(clinics, {
+    fields: [medicalProfessionals.clinicId],
+    references: [clinics.id],
+  }),
+  ratings: many(professionalRatings),
+}));
 
 export const clinicSpecialtiesRelations = relations(clinicSpecialties, ({ one }) => (
   {
@@ -209,6 +249,17 @@ export const ratingsRelations = relations(ratings, ({ one }) => (
     }),
   }
 ));
+
+export const professionalRatingsRelations = relations(professionalRatings, ({ one }) => ({
+  professional: one(medicalProfessionals, {
+    fields: [professionalRatings.professionalId],
+    references: [medicalProfessionals.id],
+  }),
+  user: one(users, {
+    fields: [professionalRatings.userId],
+    references: [users.id],
+  }),
+}));
 
 export const commentsRelations = relations(comments, ({ one, many }) => (
   {
@@ -246,6 +297,7 @@ export const specialtiesRelations = relations(specialties, ({ many }) => (
 export const usersRelations = relations(users, ({ many }) => (
   {
     ratings: many(ratings),
+    professionalRatings: many(professionalRatings),
     comments: many(comments),
     appointments: many(appointments),
   }

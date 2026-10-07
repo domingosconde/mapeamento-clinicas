@@ -41,6 +41,8 @@ import { storagePut } from "./storage";
 import { and, eq } from "drizzle-orm";
 import { moderateCommentText } from "./moderation";
 import { queueClinicNotification } from "./notifications";
+import { createProfessional, createProfessionalRating, getClinicProfessionals, getProfessionalById, getUserProfessionalRating } from "./professionals";
+import { queueAppointmentEmail } from "./email";
 
 export const appRouter = router({
   system: systemRouter,
@@ -156,6 +158,52 @@ export const appRouter = router({
 
   specialties: router({
     list: publicProcedure.query(async () => getAllSpecialties()),
+  }),
+
+  professionals: router({
+    getByClinic: publicProcedure
+      .input(z.object({ clinicId: z.number() }))
+      .query(({ input }) => getClinicProfessionals(input.clinicId)),
+
+    getUserRating: protectedProcedure
+      .input(z.object({ professionalId: z.number() }))
+      .query(({ input, ctx }) => getUserProfessionalRating(input.professionalId, ctx.user.id)),
+
+    rate: protectedProcedure
+      .input(z.object({ professionalId: z.number(), score: z.number().int().min(1).max(5) }))
+      .mutation(async ({ input, ctx }) => {
+        const professional = await getProfessionalById(input.professionalId);
+        if (!professional) throw new TRPCError({ code: "NOT_FOUND" });
+        const existing = await getUserProfessionalRating(input.professionalId, ctx.user.id);
+        if (existing) throw new TRPCError({ code: "CONFLICT", message: "Já avaliou este profissional." });
+        return createProfessionalRating({
+          professionalId: input.professionalId,
+          userId: ctx.user.id,
+          score: input.score,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }),
+
+    create: protectedProcedure
+      .input(z.object({
+        clinicId: z.number(),
+        name: z.string().min(2).max(255),
+        specialty: z.string().min(2).max(255),
+        licenseNumber: z.string().max(100).optional(),
+        bio: z.string().max(5000).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const clinic = await getClinicByAdminId(ctx.user.id);
+        if (!clinic || clinic.id !== input.clinicId) throw new TRPCError({ code: "FORBIDDEN" });
+        return createProfessional({
+          ...input,
+          licenseNumber: input.licenseNumber ?? null,
+          bio: input.bio ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }),
   }),
 
   ratings: router({
@@ -332,6 +380,15 @@ export const appRouter = router({
           title: "Novo pedido de agendamento",
           content: `Foi criado um pedido de agendamento para a clínica ${input.clinicId} em ${input.appointmentDate} às ${input.startTime}.`,
         });
+        queueAppointmentEmail({
+          recipient: appointment.patientEmail,
+          patientName: appointment.patientName,
+          clinicId: appointment.clinicId,
+          appointmentDate: appointment.appointmentDate,
+          startTime: appointment.startTime,
+          endTime: appointment.endTime,
+          status: "pendente",
+        });
         return appointment;
       }),
 
@@ -399,6 +456,15 @@ export const appRouter = router({
         queueClinicNotification({
           title: "Estado de agendamento atualizado",
           content: `O agendamento ${input.appointmentId} passou para o estado ${input.status}.`,
+        });
+        queueAppointmentEmail({
+          recipient: appointment.patientEmail,
+          patientName: appointment.patientName,
+          clinicId: appointment.clinicId,
+          appointmentDate: appointment.appointmentDate,
+          startTime: appointment.startTime,
+          endTime: appointment.endTime,
+          status: input.status,
         });
         return { success: true };
       }),

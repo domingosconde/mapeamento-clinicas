@@ -48,6 +48,10 @@ vi.mock("@/lib/trpc", () => {
         getByClinic: { useQuery: () => ({ data: [], refetch: vi.fn() }) },
         create: { useMutation: mutation },
       },
+      professionals: {
+        getByClinic: { useQuery: () => ({ data: [{ id: 7, name: "Dra. Ana Manuel", specialty: "Cardiologia", averageRating: 4.8, totalRatings: 6, bio: "Acompanhamento preventivo." }] }) },
+        rate: { useMutation: mutation },
+      },
     },
   };
 });
@@ -59,6 +63,8 @@ describe("ClinicDetail", () => {
     expect(screen.getByRole("heading", { name: "Clínica Teste" })).toBeInTheDocument();
     expect(screen.getByText("Cuidados de proximidade.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Agendar Consulta" })).toBeInTheDocument();
+    expect(screen.getByText("Dra. Ana Manuel")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Entrar para avaliar" })).toBeInTheDocument();
     expect(screen.getByText("Clínica Teste").parentElement).toHaveTextContent("Verificada");
   });
 });
